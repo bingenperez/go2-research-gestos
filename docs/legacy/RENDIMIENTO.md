@@ -65,7 +65,7 @@ Y dentro de esa Ubuntu:
 ```bash
 sudo apt install -y docker.io docker-compose-v2 git
 sudo usermod -aG docker $USER      # cerrar y reabrir WSL
-git clone https://github.com/tu-usuario/go2-research-gestos.git
+git clone https://github.com/bingenperez/go2-research-gestos.git
 cd go2-research-gestos
 ./go2 dev shell
 ```

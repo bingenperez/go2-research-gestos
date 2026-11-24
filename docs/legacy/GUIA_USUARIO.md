@@ -242,7 +242,7 @@ reiniciar tras el `usermod`.
 los ficheros que cree el contenedor pertenecerán a root y no podrás borrarlos:
 
 ```bash
-git clone https://github.com/tu-usuario/go2-research-gestos.git
+git clone https://github.com/bingenperez/go2-research-gestos.git
 cd go2-research-gestos
 echo "UID_GID=$(id -u):$(id -g)" > .env
 ```
@@ -250,7 +250,7 @@ echo "UID_GID=$(id -u):$(id -g)" > .env
 En Windows y macOS no hace falta: la variable se ignora.
 
 ```bash
-git clone https://github.com/tu-usuario/go2-research-gestos.git
+git clone https://github.com/bingenperez/go2-research-gestos.git
 cd go2-research-gestos
 docker compose --profile sim pull
 ```

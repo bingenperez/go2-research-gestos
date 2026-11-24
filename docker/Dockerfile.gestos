@@ -25,7 +25,7 @@ FROM ${BASE_IMAGE}
 
 LABEL org.opencontainers.image.title="go2-research-gestos"
 LABEL org.opencontainers.image.description="go2-workspace + MediaPipe y modelo de pose para los casos de uso de gestos (uc13)"
-LABEL org.opencontainers.image.source="https://github.com/tu-usuario/go2-research-gestos"
+LABEL org.opencontainers.image.source="https://github.com/bingenperez/go2-research-gestos"
 
 # --no-deps es OBLIGATORIO: mediapipe pide opencv-contrib-python, que pisaria
 # el OpenCV de la imagen (el que abre las ventanas --show). Es la misma receta

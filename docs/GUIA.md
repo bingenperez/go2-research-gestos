@@ -133,7 +133,7 @@ Si en Linux dice `permission denied`, no has reiniciado tras el paso anterior.
 🖥️ FUERA:
 
 ```bash
-git clone https://github.com/tu-usuario/go2-research-gestos.git
+git clone https://github.com/bingenperez/go2-research-gestos.git
 cd go2-research-gestos
 ```
 

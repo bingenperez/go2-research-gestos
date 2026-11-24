@@ -16,7 +16,7 @@ Del ordenador en blanco al simulador (Linux, Windows y macOS) y, en Linux,
 al robot físico siguiéndote con su cámara.
 
 ```bash
-git clone https://github.com/tu-usuario/go2-research-gestos.git
+git clone https://github.com/bingenperez/go2-research-gestos.git
 cd go2-research-gestos
 docker compose --profile sim pull      # una vez, 1-10 min
 ```

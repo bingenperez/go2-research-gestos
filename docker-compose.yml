@@ -32,7 +32,7 @@ services:
       dockerfile: Dockerfile.gestos   # FROM go2-workspace + MediaPipe (ver build.sh)
     # Imagen publicada: `docker compose pull` la baja sin construir nada.
     # Para construirla en local:  docker compose --profile sim build
-    image: ghcr.io/${GHCR_USER:-tu-usuario}/go2-research-gestos:latest
+    image: ghcr.io/${GHCR_USER:-bingenperez}/go2-research-gestos:latest
     container_name: go2-sim
     environment:
       GO2_MODE: sim
@@ -62,7 +62,7 @@ services:
   # por donde va el DDS de la simulacion.
   shell:
     profiles: ["sim"]
-    image: ghcr.io/${GHCR_USER:-tu-usuario}/go2-research-gestos:latest
+    image: ghcr.io/${GHCR_USER:-bingenperez}/go2-research-gestos:latest
     container_name: go2-shell
     depends_on: [sim]
     network_mode: "service:sim"
@@ -98,7 +98,7 @@ services:
   # -------------------------------------------------------------------------
   real:
     profiles: ["real"]
-    image: ghcr.io/${GHCR_USER:-tu-usuario}/go2-research-gestos:latest
+    image: ghcr.io/${GHCR_USER:-bingenperez}/go2-research-gestos:latest
     container_name: go2-real
     network_mode: host          # imprescindible para el DDS por Ethernet
     environment:
@@ -126,7 +126,7 @@ services:
   # -------------------------------------------------------------------------
   dev:
     profiles: ["dev"]
-    image: ghcr.io/${GHCR_USER:-tu-usuario}/go2-research-gestos:latest
+    image: ghcr.io/${GHCR_USER:-bingenperez}/go2-research-gestos:latest
     container_name: go2-dev
     network_mode: host
     environment:

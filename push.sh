@@ -14,7 +14,7 @@ set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 [[ -f .env ]] && GHCR_USER="${GHCR_USER:-$(sed -n 's/^GHCR_USER=//p' .env | tail -1)}"
-GHCR_USER="${GHCR_USER:-tu-usuario}"
+GHCR_USER="${GHCR_USER:-bingenperez}"
 GHCR_USER="${GHCR_USER,,}"
 IMAGE="ghcr.io/${GHCR_USER}/go2-research-gestos"
 

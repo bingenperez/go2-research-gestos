@@ -49,7 +49,7 @@ has reiniciado tras el `usermod`.
 ## 2. Descargar el proyecto
 
 ```bash
-git clone git@github.com:tu-usuario/go2-research-gestos.git
+git clone git@github.com:bingenperez/go2-research-gestos.git
 cd go2-research-gestos
 ```
 

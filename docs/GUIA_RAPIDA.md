@@ -40,9 +40,9 @@ Datos fijos de la red del perro:
 🖥️ FUERA:
 
 ```bash
-git clone https://github.com/tu-usuario/go2-research-gestos.git
+git clone https://github.com/bingenperez/go2-research-gestos.git
 cd go2-research-gestos
-docker pull ghcr.io/tu-usuario/go2-research-gestos:latest
+docker pull ghcr.io/bingenperez/go2-research-gestos:latest
 ```
 
 La imagen ya trae todo (ROS 2, SDK de Unitree, OpenCV, YOLO, **MediaPipe y su

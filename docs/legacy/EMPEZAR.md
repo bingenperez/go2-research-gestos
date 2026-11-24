@@ -109,7 +109,7 @@ docker run --rm hello-world
 En la misma terminal:
 
 ```bash
-git clone https://github.com/tu-usuario/go2-research-gestos.git
+git clone https://github.com/bingenperez/go2-research-gestos.git
 cd go2-research-gestos
 ```
 
