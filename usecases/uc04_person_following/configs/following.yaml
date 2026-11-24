@@ -1,0 +1,64 @@
+# uc04 — parametros del seguimiento de personas
+
+modelo: yolo11n.pt       # el mas pequeno: va sobrado en CPU
+ancho: 640
+alto: 480
+imgsz: 320               # resolucion de inferencia; 320 basta y va al doble
+confianza_min: 0.4
+suavizado: 0.6           # media exponencial sobre la deteccion
+fallos_para_perder: 5    # fotogramas fallidos seguidos antes de dar por perdida
+
+control:
+  # Fraccion del alto de la imagen que debe ocupar la persona. Es la consigna
+  # de distancia: mas grande significa mas cerca.
+  objetivo_tamano: 0.60
+
+  # Con la CAMARA DEL ROBOT el rango es otro. Medido el 2026-09-24:
+  #     1 m -> tam 0.85     2 m -> ~0.75     3 m -> 0.65
+  # El ojo de pez comprime la perspectiva y el recuadro varia la mitad que con
+  # la webcam. Objetivo 0.75 para mantener unos 2 metros.
+  #
+  # La zona muerta tambien baja: con solo 0.20 de rango entre 1 y 3 metros, una
+  # zona muerta de 0.10 se comeria la mitad del margen util.
+  objetivo_tamano_robot: 0.75
+  zona_muerta_tamano_robot: 0.04
+
+  # Ganancias subidas para compensar la politica de locomocion: en simulacion
+  # sigue el comando solo al 40-56 % a velocidades bajas (medido en uc01), asi
+  # que un comando pequeno se traduce en un arrastre imperceptible.
+  #
+  # En el ROBOT REAL con Sport Mode el seguimiento es mucho mejor: bajar a
+  # kp_giro 1.2 y kp_avance 1.0 antes de la primera prueba con el hardware.
+  # Ganancias para el ROBOT REAL con Sport Mode (2026-09-24).
+  #
+  # Sport Mode ignora los comandos por debajo de un umbral interno y anda en
+  # marcha discreta: por debajo de 0.2 m/s el robot se queda quieto o avanza a
+  # tirones. Por eso la velocidad minima efectiva es alta y las ganancias no
+  # pueden ser tan bajas como parecerian razonables.
+  #
+  # En SIMULACION habia que subirlas a 2.0 y 2.2 para compensar la politica RL,
+  # que sigue el comando al 40-56 %. Sport Mode lo sigue mucho mejor.
+  kp_giro: 1.2
+  kp_avance: 1.4
+
+  # Zonas muertas. Sin ellas el robot oscila sin parar por el ruido de la
+  # deteccion, que salta unos pocos pixeles entre fotogramas.
+  zona_muerta_lateral: 0.15
+  zona_muerta_tamano: 0.10
+
+  # Rampa de aceleracion (m/s por segundo). Evita tirones cuando la deteccion
+  # salta de golpe.
+  aceleracion_max: 0.6
+
+  # Topes propios, mas conservadores que los del contrato: seguir a una
+  # persona no necesita la velocidad maxima del robot.
+  # Velocidad minima util: por debajo de 0.2 Sport Mode ignora el comando.
+  vx_min_util: 0.20
+  wz_min_util: 0.25
+  vx_max: 0.4
+  wz_max: 0.6
+
+notas:
+  - "La camara del Go2 esta a unos 30 cm del suelo: vera piernas y torso, no caras."
+  - "El tamano aparente deja de crecer a corta distancia, cuando la persona se sale del encuadre."
+  - "Probar siempre primero con --dry-run."

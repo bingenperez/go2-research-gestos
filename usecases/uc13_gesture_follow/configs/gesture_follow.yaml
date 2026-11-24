@@ -1,0 +1,222 @@
+# uc13 — gestos + seguimiento a 2 m, con inclinacion para ver los gestos
+
+# --- Gestos: MediaPipe PoseLandmarker ------------------------------------
+# Instalacion TEMPORAL dentro de la caja: ver el README ("Dependencia: MediaPipe").
+modelo_pose: /tmp/go2models/pose_landmarker_lite.task
+num_poses: 3             # personas que busca; se usa la mas grande (la mas cercana)
+confianza_min: 0.5       # deteccion, presencia y seguimiento de MediaPipe
+ancho: 640               # la camara del robot da 1920x1080: se reduce antes de inferir
+# Andando, MediaPipe solo cada N fotogramas (1 = todos). Subirlo si los fps
+# bajan de ~10 con YOLO + MediaPipe. Quieto siempre va a ritmo completo.
+mediapipe_cada_n_andando: 1
+
+# --- Persona para seguir: YOLO (copiado de uc04) -------------------------
+# A 2 m el robot andando solo ve piernas y cadera; MediaPipe necesita la cara
+# para detectar a la persona. YOLO no (uc04 ya seguia a 2 m con el).
+yolo:
+  modelo: yolo11n.pt     # en la raiz del repo (ignorado por git)
+  imgsz: 320
+  confianza_min: 0.4
+
+gestos:
+  vis_min: 0.5
+  referencia_mano: nariz
+  margen_cabeza: 0.03
+  margen_hombros_anchos: 1.0
+  mano:
+    otra_bajo_hombro_anchos: 0.0
+  cruce_min: 0.10
+  margen_pecho: 0.05
+  t:
+    separacion_min: 1.0
+    altura_max: 0.5
+    exigir_codos: true
+    codo_fuera_min: 0.3
+  frames_necesarios:
+    dos_manos: 15
+    mano: 15
+    cruzados: 15
+    t: 15
+    # El saludo NO cuenta fotogramas: lo confirma su propia ventana (abajo).
+
+  # Saludo con la mano (gesto dinamico): DE_PIE -> Hello (igual que la T),
+  # TUMBADO -> levantarse, siguiendo -> nada. Tiene prioridad sobre "una mano".
+  # Umbrales SIN medir en el robot: ajustarlos con las columnas saludo_* de
+  # metrics.csv (--log) o con perception/pose.py --show (webcam).
+  saludo:
+    activo: true           # false: no se detecta (la T sigue saludando)
+    # codo | hombro: la muneca tiene que estar por encima. Ademas vale "arriba"
+    # como en "una mano" (por encima de la nariz): en el extremo del vaiven
+    # la muneca no siempre esta por encima del codo (dry-run 2026-11-24).
+    referencia: codo
+    margen_anchos: 0.3     # cuanto por encima, en escalas (~anchos de hombro)
+    # Ventana deslizante. 1.5 -> 2.5 -> 3.0 (dry-run 2026-11-24): se saludo a ~0.5-0.6 Hz
+    # (un ciclo cada ~1.6 s) con amplitud 0.7-1.2; 3 cambios no caben en 1.5 s.
+    ventana_s: 3.0
+    cambios_min: 3         # cambios de direccion de la muneca en la ventana
+    # Cada cambio solo cuenta si el tramo que acaba en el (de extremo a
+    # extremo de x muneca - x hombro) mide al menos esto, en escalas. Asi un
+    # atipico de MediaPipe de 2 fotogramas no suma 3 cambios.
+    amplitud_min: 0.3
+    histeresis: 0.10       # retroceso minimo desde el extremo para contar un cambio
+    # Brazo bajado o sin ver este tiempo (en fotogramas procesados): se borra
+    # su historia; y, tras un Hello, se re-arma el saludo.
+    hueco_max_s: 0.3
+    # escala = max(ancho de hombros, esto * largo del torso). De lado el ancho
+    # de hombros se encoge; sin minimo, el temblor de MediaPipe se amplifica.
+    escala_min_torso: 0.6
+
+acciones:
+  # Segundos tras una accion en los que no se lanza otra. Un gesto DISTINTO
+  # que se confirme durante el cooldown queda PENDIENTE y se ejecuta al
+  # acabar, si se sigue viendo. El MISMO gesto que acaba de actuar tiene que
+  # dejar de verse antes de volver a contar (asi "dos manos" no rebota).
+  # PARAR (dos manos o T siguiendo) no espera al cooldown.
+  cooldown_s: 5.0
+  rearmar: true
+  espera_standup_s: 3.0
+  espera_balance_s: 2.0
+  espera_stopmove_s: 0.5
+  espera_hello_s: 4.0
+  timeout_alto_s: 3.0
+  estable_s: 1.0
+  timeout_estable_s: 8.0
+  timeout_standdown_s: 5.0
+
+seguimiento:
+  # --- Distancia objetivo: 2.0 m --------------------------------------------
+  # tam = alto de la caja de YOLO / alto de la imagen (como uc04). Calibrado
+  # 2026-11-18 con la camara del robot, de pie y quieto (mediana [cal] de
+  # yolo_tam en --dry-run --debug): 2.0 m -> 0.786, 1.3 m -> 0.888.
+  # Pendiente 0.146 tam/m. Por encima de 2 m es extrapolacion (no medido).
+  d_objetivo_m: 2.0
+  tam_objetivo: 0.786
+  d_cerca_m: 1.3
+  tam_cerca: 0.888
+  # A 1.3 m la caja ya toca el borde de arriba: mas cerca tam no pasa de
+  # ~0.89, asi que la distancia medida nunca baja de ~1.29 m. Solo se usa
+  # para comprobar al arrancar que la marcha atras salta antes de saturar.
+  tam_saturacion: 0.89
+
+  # Filtro de tam y lateral: mediana | ema | mediana+ema.
+  filtro: mediana+ema
+  ventana: 5             # ~0.33 s a 15 fps; la mediana quita atipicos sueltos
+  alfa: 0.5              # peso del dato nuevo en la media exponencial
+
+  # --- Avance con histeresis (en METROS) -----------------------------------
+  d_arrancar_m: 2.5      # parado: arranca si la persona esta mas lejos
+  d_parar_m: 2.15        # en marcha: para si esta mas cerca
+  kp_distancia: 0.5      # m/s por metro de mas: 0.5 m -> 0.25, 0.8 m -> 0.4
+  # En marcha nunca por debajo de esto: por encima del minimo de Sport Mode
+  # (~0.2), asi no hay pasitos cortos. Hoy iba pegado a 0.20.
+  vx_marcha_min: 0.25
+  vx_max: 0.4            # tope de uc04
+  acel_vx: 0.5           # rampa al acelerar Y al frenar (m/s por segundo)
+
+  # --- Marcha atras limitada -------------------------------------------------
+  marcha_atras:
+    activa: true
+    # Retrocede si d < d_m. NO 1.3: 1.3 m es tam 0.888 y tam satura en ~0.89,
+    # asi que con 1.3 saltaria o no segun el ruido (margen 0.002). 1.4 m es
+    # tam 0.873, 0.017 por debajo de la saturacion: cualquier persona a
+    # menos de ~1.4 m (aunque este a 0.8 m y tam se quede en 0.89) lo dispara.
+    d_m: 1.4
+    vx: 0.15            # m/s. OJO: Sport Mode puede ignorar < ~0.2 (uc04)
+    max_s: 3.0           # como mucho seguidos; si sigue cerca, se para
+    d_rearme_m: 1.6      # no vuelve a retroceder hasta que la persona pase de aqui
+
+  # --- Giro con histeresis -------------------------------------------------
+  lat_girar: 0.20        # empieza a girar si |lateral| supera esto
+  lat_dejar_girar: 0.08  # deja de girar por debajo
+  kp_giro: 1.2           # de uc04
+  wz_min: 0.25           # minimo util de Sport Mode (uc04)
+  wz_max: 0.6            # tope de uc04
+  acel_wz: 1.5           # rampa del giro (rad/s por segundo)
+
+  # --- Perdida de la persona (YOLO) ----------------------------------------
+  perdida_s: 0.5         # sin persona: velocidad 0 y PAUSADO
+  pausa_max_s: 5.0       # PAUSADO este tiempo: deja de seguir
+  no_de_pie_max_s: 1.0   # siguiendo, fuera del rango de pie activo: deja de seguir
+
+  move_hz: 20.0          # frecuencia maxima de Move (es una peticion RPC)
+
+inclinacion:
+  # SportClient.Euler(roll, pitch, yaw), API 1007, radianes (SDK). Solo en
+  # BalanceStand y en reposo. roll y yaw siempre 0.
+  # Metodo: BalanceStand y Euler(0, pitch, 0) EN BUCLE cada 0.1 s (un solo
+  # Euler de 5 grados no lo movia, 2026-11-18). Solo tiempos para decidir;
+  # la IMU solo se muestra.
+  # --probar-inclinacion en el robot real, 2026-11-20:
+  #   1a prueba, justo tras ENCENDER el robot: NO se movio (IMU de lowstate
+  #      -0.0 grados, body_height igual). Codigos no registrados entonces.
+  #   2a prueba, misma sesion: SI se movio, pero el morro BAJO con +0.25.
+  #      Todos los Euler con codigo 0; MotionSwitcher.CheckMode = mcf;
+  #      sport API 1.0.0.1; mode siempre 0; IMU +13.0 grados al inclinarse;
+  #      body_height de 0.328 a 0.366 m (OJO: por encima de de_pie_activo).
+  #   3a y 4a, con signo -1, seguidas, "tras un rato" sin usar el robot:
+  #   3a: NO se movio (IMU -0.0, body_height fijo 0.320), codigos 0.
+  #   4a: el morro SUBIO. IMU -12.9 grados, body_height 0.320-0.361 m,
+  #       codigos 0.
+  #   PATRON (2 de 2): la primera secuencia de Euler tras encender o tras un
+  #   rato NO tiene efecto aunque todos los codigos son 0; la siguiente si.
+  #   Causa sin confirmar (ver README, "Primera secuencia sin efecto").
+  # Pruebas A y B con --log (2026-11-20, signo -1, espera 1 s tras BalanceStand):
+  #   A (--mantener 15 --ciclos 2) y B (--mantener 3): las dos se movieron A
+  #   LA PRIMERA. Empieza a moverse 0.16 s tras el primer Euler, 90 % a 0.31 s;
+  #   estable en -13.4 grados de IMU (~12.4 desde recto; se pidieron 14.3),
+  #   +-0.03. Vuelta a < 2 grados 0.27 s tras Euler 0, asentado ~0.4 s.
+  #   body_height inclinado 0.357-0.361. El fallo de la primera secuencia NO
+  #   se reprodujo. Logs: experiments/uc13_gesture_follow/2026-11-20T1004*,
+  #   2026-11-20T1005*.
+  activa: true
+  # pitch NEGATIVO levanta el morro: con +0.25 bajo y con -0.25 subio
+  # (--probar-inclinacion, 2026-11-20). Confirmado.
+  signo: -1
+  max_rad: 0.25          # ~14 grados
+  periodo_envio_s: 0.1   # inclinado (o enderezando) se reenvia Euler cada 0.1 s
+  t_inclinar_s: 0.5      # tras el primer Euler, se da por inclinado
+  # Euler 0 durante esto antes de volver a mandar Move. Medido 2026-11-20
+  # (pruebas A y B): < 2 grados a 0.27 s y asentado a ~0.4 s. 0.7 da margen.
+  t_enderezar_s: 0.7
+  # Tras cualquier BalanceStand, espera minima antes del primer Euler. Es la
+  # de --probar-inclinacion (A y B funcionaron con 1 s); el primer Euler justo
+  # tras BalanceStand (0 s) no se ha probado en el robot.
+  espera_balance_s: 1.0
+  # En reposo (vx = 0 y wz = 0, siguiendo o quieto de pie) este tiempo antes
+  # de inclinarse.
+  espera_quieto_s: 1.0
+  # Inclinado NO se calcula la distancia. Para notar que la persona se mueve
+  # se compara tam inclinado con el tam inclinado de referencia: si cambia
+  # mas que esto, o |lateral| > lat_girar, se endereza y se vuelve a medir.
+  banda_tam: 0.04
+
+seguridad:
+  imagen_max_edad_s: 0.5     # watchdog de imagen
+  estado_max_edad_s: 0.5     # watchdog de rt/sportmodestate
+  sin_imagen_salir_s: 5.0
+  timeout_sport_s: 2.0
+
+estado_robot:
+  # Medido 2026-11-17 con --estado (uc11): mode 0 en TODAS las posturas.
+  #   tumbado 0.070 m    sentado 0.228-0.242 m    de pie 0.311-0.320 m
+  usar_mode: false
+  rangos_altura:
+    tumbado: [0.00, 0.12]
+    sentado: [0.20, 0.27]
+    de_pie: [0.28, 0.36]
+  # Siguiendo, pausado o inclinado: medido 2026-11-18 andando 0.282-0.320 (a
+  # 2 mm del limite de 0.28). En esos estados vale este rango como DE_PIE.
+  # Sentarse no esta permitido y sentado mide <= 0.242.
+  # Inclinado (Euler 0.25 rad) sube: medido 2026-11-20 hasta 0.366 (morro
+  # abajo) y 0.361 (morro arriba). Tope subido de 0.36 a 0.40.
+  de_pie_activo: [0.26, 0.40]
+  modos_de_pie: [1, 3]
+  modos_tumbado: [5, 6, 7]
+  modos_sentado: [10]
+  altura_umbral: 0.20
+  simulado_inicial: TUMBADO
+
+notas:
+  - "Distancia objetivo 2 m. Andando solo ve piernas: sigue con YOLO. En reposo se inclina 0.25 rad para ver los gestos."
+  - "A 2 m con ~14 grados: T (parar) y cruzados (tumbarse) se ven; dos manos necesita ~2.4 m."
+  - "Orden: --estado, --dry-run --debug (calibrar a 2.0 y 1.3 m), --probar-inclinacion, prueba real."

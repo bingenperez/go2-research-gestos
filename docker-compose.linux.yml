@@ -1,0 +1,55 @@
+# docker-compose.linux.yml
+#
+# GENERADO POR tools/gen_linux_override.py el 2026-10-21
+# NO editar a mano: se regenera con
+#     python3 tools/gen_linux_override.py --write
+#
+# Comparte con el contenedor la GPU y la webcam de ESTA maquina. Los valores
+# dependen del ordenador, asi que cada usuario de Linux debe regenerarlo.
+#
+# Los grupos van por GID NUMERICO, no por nombre: el nombre se resolveria en el
+# /etc/group del CONTENEDOR, que es un Ubuntu minimo y no tiene `render`.
+#
+# La camara del ROBOT no necesita nada de esto: llega por red.
+#
+# Detectado en esta maquina:
+#   GPU     card1, card2, renderD128, renderD129
+#   webcam  video0, video1, video2, video3
+#   grupos  44 (video), 990 (render)
+
+services:
+
+  shell:
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
+      - /dev/video2:/dev/video2
+      - /dev/video3:/dev/video3
+    group_add:
+      - "44"          # video
+      - "990"          # render
+
+
+  real:
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
+      - /dev/video2:/dev/video2
+      - /dev/video3:/dev/video3
+      - /dev/dri:/dev/dri
+    group_add:
+      - "44"          # video
+      - "990"          # render
+
+
+  dev:
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
+      - /dev/video2:/dev/video2
+      - /dev/video3:/dev/video3
+    group_add:
+      - "44"          # video
+      - "990"          # render
+

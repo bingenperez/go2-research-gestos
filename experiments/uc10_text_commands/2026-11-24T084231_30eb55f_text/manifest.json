@@ -1,0 +1,71 @@
+{
+  "usecase": "uc10_text_commands",
+  "fecha": "2026-11-24T08:42:31",
+  "git_sha": "30eb55f",
+  "git": {
+    "sha": "30eb55fb8b99c6d70b1f63b6c18405f95be58ad1",
+    "dirty": true
+  },
+  "modo": "real",
+  "dry_run": false,
+  "config": {
+    "acciones": {
+      "espera_standup_s": 3.0,
+      "espera_balance_s": 2.0,
+      "espera_hello_s": 4.0,
+      "espera_stopmove_s": 0.5,
+      "timeout_alto_s": 3.0,
+      "estable_s": 1.0,
+      "timeout_estable_s": 8.0,
+      "timeout_estable_cierre_s": 3.0,
+      "timeout_sit_s": 6.0,
+      "timeout_standdown_s": 5.0
+    },
+    "seguridad": {
+      "estado_max_edad_s": 0.5
+    },
+    "estado_robot": {
+      "usar_mode": false,
+      "rangos_altura": {
+        "tumbado": [
+          0.0,
+          0.12
+        ],
+        "sentado": [
+          0.2,
+          0.26
+        ],
+        "de_pie": [
+          0.28,
+          0.36
+        ]
+      },
+      "modos_de_pie": [
+        1,
+        3
+      ],
+      "modos_tumbado": [
+        5,
+        6,
+        7
+      ],
+      "modos_sentado": [
+        10
+      ],
+      "altura_umbral": 0.2,
+      "simulado_inicial": "TUMBADO"
+    }
+  },
+  "duracion_s": 102.3,
+  "ordenes": {
+    "tumbar": 3,
+    "levantar": 3,
+    "saludar": 2,
+    "sentar": 1,
+    "salir": 1
+  },
+  "resultados": {
+    "ok": 10
+  },
+  "postura_final": "TUMBADO"
+}

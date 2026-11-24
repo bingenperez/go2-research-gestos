@@ -1,0 +1,68 @@
+# docker/Dockerfile.gestos
+#
+# Imagen de go2-research-gestos = imagen go2-workspace de siempre + lo que antes
+# se instalaba a mano en cada sesion (docs/GUIA_MIS_CASOS_USO.md, seccion 4):
+#
+#   - mediapipe 1.2.3   (gestos: uc13 con camara)
+#   - sounddevice 0.5.6 (dependencia de mediapipe)
+#   - pose_landmarker_lite.task en /tmp/go2models/, donde lo busca
+#     usecases/uc13_gesture_follow/configs/gesture_follow.yaml (modelo_pose)
+#
+# NO reconstruye la imagen base: parte de ella tal cual (fijada por digest) y
+# solo anade una capa. docker/Dockerfile (el original) sigue ahi como referencia
+# de como se construyo la base.
+#
+# Versiones sacadas de `pip list` del contenedor con el que uc13 funciono en el
+# robot real (2026-11-24) frente a `pip list` de la imagen base: solo difieren
+# en estos dos paquetes. El resto de dependencias de mediapipe (absl-py,
+# certifi, flatbuffers, matplotlib, numpy, cffi) ya estan en la base.
+#
+# Construir:  ./build.sh        Subir:  ./push.sh
+
+# Base fijada por digest: aunque `latest` cambie en ghcr, esto no cambia.
+ARG BASE_IMAGE=ghcr.io/isoto-mondragon/go2-workspace@sha256:7617fa6fe856350d577f1720e93c7c983094df118edca19f47df21764ef779a6
+FROM ${BASE_IMAGE}
+
+LABEL org.opencontainers.image.title="go2-research-gestos"
+LABEL org.opencontainers.image.description="go2-workspace + MediaPipe y modelo de pose para los casos de uso de gestos (uc13)"
+LABEL org.opencontainers.image.source="https://github.com/tu-usuario/go2-research-gestos"
+
+# --no-deps es OBLIGATORIO: mediapipe pide opencv-contrib-python, que pisaria
+# el OpenCV de la imagen (el que abre las ventanas --show). Es la misma receta
+# que la guia, ahora una sola vez y en la imagen.
+RUN pip3 install --no-cache-dir --no-deps \
+        mediapipe==1.2.3 \
+        sounddevice==0.5.6 \
+    && python3 -c "import cv2, mediapipe; print('cv2', cv2.__version__, '| mediapipe', mediapipe.__version__)" \
+    && ! pip3 list 2>/dev/null | grep -qi '^opencv-contrib-python '
+
+# Modelo de pose. La URL es "latest", asi que se comprueba el sha256 del modelo
+# que se uso en el robot: si Google lo cambia, la construccion falla en vez de
+# meter otro modelo sin avisar.
+# Directorio 1777 (como /tmp): el contenedor arranca con el uid del anfitrion y
+# la guia antigua hace `mkdir -p /tmp/go2models && cp ...`, que debe seguir
+# funcionando.
+ARG POSE_URL=https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task
+ARG POSE_SHA256=59929e1d1ee95287735ddd833b19cf4ac46d29bc7afddbbf6753c459690d574a
+RUN mkdir -p /tmp/go2models \
+    && curl -fsSL -o /tmp/go2models/pose_landmarker_lite.task "${POSE_URL}" \
+    && echo "${POSE_SHA256}  /tmp/go2models/pose_landmarker_lite.task" | sha256sum -c - \
+    && chmod 1777 /tmp/go2models \
+    && chmod 644 /tmp/go2models/pose_landmarker_lite.task
+
+# Ventanas de OpenCV por X11 desde el contenedor (antes: export a mano).
+# Sin MIT-SHM la ventana sale gris/negra o da BadAccess. No afecta a nada mas.
+ENV QT_X11_NO_MITSHM=1
+
+# Registro de lo anadido, junto al de la base.
+RUN { echo; echo "Capa go2-research-gestos:"; \
+      pip3 list 2>/dev/null | grep -iE '^(mediapipe|sounddevice|opencv-python) ' | sed 's/^/  /'; \
+      echo "  pose_landmarker_lite.task sha256 ${POSE_SHA256}"; \
+    } >> /opt/go2/VERSIONS.txt
+
+# Nada de la base depende del nombre de la carpeta: el repo se monta siempre en
+# /workspace (GO2_ROOT, WORKDIR y PYTHONPATH ya apuntan ahi). Se reafirma por
+# claridad.
+ENV GO2_ROOT=/workspace \
+    PYTHONPATH=/workspace/src
+WORKDIR /workspace

@@ -1,0 +1,168 @@
+{
+  "usecase": "uc13_gesture_follow",
+  "fecha": "2026-11-24T14:06:41",
+  "git_sha": "30eb55f",
+  "git": {
+    "sha": "30eb55fb8b99c6d70b1f63b6c18405f95be58ad1",
+    "dirty": true
+  },
+  "modo": "real",
+  "fuente": "robot",
+  "camara": 0,
+  "dry_run": false,
+  "config": {
+    "modelo_pose": "/tmp/go2models/pose_landmarker_lite.task",
+    "num_poses": 3,
+    "confianza_min": 0.5,
+    "ancho": 640,
+    "mediapipe_cada_n_andando": 1,
+    "yolo": {
+      "modelo": "yolo11n.pt",
+      "imgsz": 320,
+      "confianza_min": 0.4
+    },
+    "gestos": {
+      "vis_min": 0.5,
+      "referencia_mano": "nariz",
+      "margen_cabeza": 0.03,
+      "margen_hombros_anchos": 1.0,
+      "mano": {
+        "otra_bajo_hombro_anchos": 0.0
+      },
+      "cruce_min": 0.1,
+      "margen_pecho": 0.05,
+      "t": {
+        "separacion_min": 1.0,
+        "altura_max": 0.5,
+        "exigir_codos": true,
+        "codo_fuera_min": 0.3
+      },
+      "frames_necesarios": {
+        "dos_manos": 15,
+        "mano": 15,
+        "cruzados": 15,
+        "t": 15
+      },
+      "saludo": {
+        "activo": true,
+        "referencia": "codo",
+        "margen_anchos": 0.3,
+        "ventana_s": 1.5,
+        "cambios_min": 3,
+        "amplitud_min": 0.3,
+        "histeresis": 0.1,
+        "hueco_max_s": 0.3,
+        "escala_min_torso": 0.6
+      }
+    },
+    "acciones": {
+      "cooldown_s": 5.0,
+      "rearmar": true,
+      "espera_standup_s": 3.0,
+      "espera_balance_s": 2.0,
+      "espera_stopmove_s": 0.5,
+      "espera_hello_s": 4.0,
+      "timeout_alto_s": 3.0,
+      "estable_s": 1.0,
+      "timeout_estable_s": 8.0,
+      "timeout_standdown_s": 5.0
+    },
+    "seguimiento": {
+      "d_objetivo_m": 2.0,
+      "tam_objetivo": 0.786,
+      "d_cerca_m": 1.3,
+      "tam_cerca": 0.888,
+      "tam_saturacion": 0.89,
+      "filtro": "mediana+ema",
+      "ventana": 5,
+      "alfa": 0.5,
+      "d_arrancar_m": 2.5,
+      "d_parar_m": 2.15,
+      "kp_distancia": 0.5,
+      "vx_marcha_min": 0.25,
+      "vx_max": 0.4,
+      "acel_vx": 0.5,
+      "marcha_atras": {
+        "activa": true,
+        "d_m": 1.4,
+        "vx": 0.15,
+        "max_s": 3.0,
+        "d_rearme_m": 1.6
+      },
+      "lat_girar": 0.2,
+      "lat_dejar_girar": 0.08,
+      "kp_giro": 1.2,
+      "wz_min": 0.25,
+      "wz_max": 0.6,
+      "acel_wz": 1.5,
+      "perdida_s": 0.5,
+      "pausa_max_s": 5.0,
+      "no_de_pie_max_s": 1.0,
+      "move_hz": 20.0
+    },
+    "inclinacion": {
+      "activa": true,
+      "signo": -1,
+      "max_rad": 0.25,
+      "periodo_envio_s": 0.1,
+      "t_inclinar_s": 0.5,
+      "t_enderezar_s": 0.7,
+      "espera_balance_s": 1.0,
+      "espera_quieto_s": 1.0,
+      "banda_tam": 0.04
+    },
+    "seguridad": {
+      "imagen_max_edad_s": 0.5,
+      "estado_max_edad_s": 0.5,
+      "sin_imagen_salir_s": 5.0,
+      "timeout_sport_s": 2.0
+    },
+    "estado_robot": {
+      "usar_mode": false,
+      "rangos_altura": {
+        "tumbado": [
+          0.0,
+          0.12
+        ],
+        "sentado": [
+          0.2,
+          0.27
+        ],
+        "de_pie": [
+          0.28,
+          0.36
+        ]
+      },
+      "de_pie_activo": [
+        0.26,
+        0.4
+      ],
+      "modos_de_pie": [
+        1,
+        3
+      ],
+      "modos_tumbado": [
+        5,
+        6,
+        7
+      ],
+      "modos_sentado": [
+        10
+      ],
+      "altura_umbral": 0.2,
+      "simulado_inicial": "TUMBADO"
+    },
+    "notas": [
+      "Distancia objetivo 2 m. Andando solo ve piernas: sigue con YOLO. En reposo se inclina 0.25 rad para ver los gestos.",
+      "A 2 m con ~14 grados: T (parar) y cruzados (tumbarse) se ven; dos manos necesita ~2.4 m.",
+      "Orden: --estado, --dry-run --debug (calibrar a 2.0 y 1.3 m), --probar-inclinacion, prueba real."
+    ]
+  },
+  "duracion_s": 23.9,
+  "fotogramas": 323,
+  "fps_medio": 15.5,
+  "persona_pct": 44.0,
+  "ciclos_watchdog": 1,
+  "acciones_lanzadas": {},
+  "acciones_ignoradas": {}
+}

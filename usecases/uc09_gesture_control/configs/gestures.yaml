@@ -1,0 +1,86 @@
+# uc09 — parametros del control por gestos
+
+# Modelo de PoseLandmarker (API Tasks de MediaPipe). No viene con mediapipe:
+# hay que descargarlo, ver el README ("Dependencia: MediaPipe"). Una ruta
+# relativa se toma desde la raiz del repo (p. ej. models/pose_landmarker_lite.task).
+modelo_pose: /opt/go2/models/pose_landmarker_lite.task
+
+num_poses: 3             # personas que busca; se usa la mas grande (la mas cercana)
+confianza_min: 0.5       # deteccion, presencia y seguimiento de MediaPipe
+ancho: 640               # la camara del robot da 1920x1080: se reduce antes de inferir
+
+gestos:
+  # Un landmark por debajo de esta visibilidad cuenta como "no se ve".
+  vis_min: 0.5
+
+  # Mano levantada: muneca por encima de la referencia, con este margen
+  # (fraccion del alto de la imagen). `nariz` es lo que pide el caso de uso.
+  # Si con la camara del robot (a 30 cm del suelo) no se llega a ver la cabeza,
+  # cambiar a `hombros`.
+  referencia_mano: nariz
+  margen_cabeza: 0.03
+
+  # Brazos cruzados: cada muneca tiene que pasar la linea media de los hombros
+  # al menos esta fraccion de la anchura de hombros. Sin minimo, unas manos
+  # juntas delante del cuerpo contarian como cruzadas.
+  cruce_min: 0.10
+  # Margen (fraccion del alto) de la banda del pecho: de hombros a caderas.
+  margen_pecho: 0.05
+
+  # Fotogramas SEGUIDOS con el mismo gesto para darlo por bueno. Unos 15 son
+  # ~1 s a 15 fps. Si el fps real es otro (sale en pantalla), ajustar aqui.
+  frames_necesarios:
+    mano: 15
+    cruzados: 15
+
+acciones:
+  # Segundos tras una accion en los que no se lanza otra.
+  cooldown_s: 5.0
+  # Tras una accion hay que bajar los brazos (gesto "ninguno") antes de que
+  # el mismo gesto vuelva a contar. Evita que mantener la mano levantada
+  # dispare un saludo cada cooldown.
+  rearmar: true
+
+  # Esperas de Sport Mode. Las mismas que uc04 para levantarse.
+  espera_standup_s: 3.0
+  espera_balance_s: 2.0
+  # "Estable" = estado DE_PIE sin interrupcion durante estable_s. Si no se
+  # consigue en timeout_estable_s, no se saluda y el robot se vuelve a tumbar.
+  estable_s: 1.0
+  timeout_estable_s: 8.0
+  # Duracion aproximada de Hello(); no se acepta otro gesto mientras tanto.
+  espera_hello_s: 4.0
+  # Tras StandDown, cuanto se espera a ver el estado TUMBADO.
+  espera_standdown_s: 4.0
+
+seguridad:
+  # Watchdog: una imagen que llega con mas de este hueco respecto a la anterior,
+  # o que tiene mas de esta edad al ir a actuar, no cuenta. No se lanza nada.
+  imagen_max_edad_s: 0.5
+  # Sin rt/sportmodestate durante este tiempo el estado es DESCONOCIDO y no se
+  # lanza nada.
+  estado_max_edad_s: 0.5
+  # Sin ninguna imagen durante este tiempo, el programa termina (y tumba al
+  # robot).
+  sin_imagen_salir_s: 5.0
+
+estado_robot:
+  # PENDIENTE DE CALIBRAR con el robot: ejecutar con --estado con el robot de
+  # pie y tumbado y comprobar que salen estos valores. Ningun script del repo
+  # los ha leido aun en el robot real; los modos vienen de la documentacion de
+  # Unitree para SportModeState.mode:
+  #   0 idle, 1 balanceStand, 2 pose, 3 locomotion, 5 lieDown, 6 jointLock,
+  #   7 damping, 8 recoveryStand, 10 sit
+  modos_de_pie: [1, 3]
+  modos_tumbado: [5, 6, 7]
+  # body_height en metros: de pie ronda 0.3, tumbado mucho menos.
+  altura_umbral: 0.20
+
+  # Solo para --dry-run con --source webcam, sin robot: estado inventado con
+  # el que arranca, para probar la maquina de estados entera en el portatil.
+  simulado_inicial: TUMBADO
+
+notas:
+  - "La camara del Go2 esta a unos 30 cm del suelo: para ver cabeza y mano levantada hay que alejarse (4 m o mas)."
+  - "Probar siempre primero con --dry-run, y calibrar estado_robot con --estado."
+  - "Este caso de uso nunca llama a Move ni a acciones acrobaticas."

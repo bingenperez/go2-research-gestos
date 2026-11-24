@@ -1,0 +1,70 @@
+{
+  "usecase": "uc13_gesture_follow",
+  "prueba": "probar_inclinacion",
+  "fecha": "2026-11-20T11:32:00",
+  "git_sha": "30eb55f",
+  "git": {
+    "sha": "30eb55fb8b99c6d70b1f63b6c18405f95be58ad1",
+    "dirty": true
+  },
+  "dry_run": false,
+  "pitch": -0.25,
+  "signo": -1.0,
+  "max_rad": 0.25,
+  "periodo_envio_s": 0.1,
+  "t_inclinar_s": 0.5,
+  "t_enderezar_s": 0.7,
+  "mantener_s": 15.0,
+  "espera_balance_s": 1.0,
+  "enderezar_medida_s": 2.0,
+  "ciclos": 2,
+  "diagnostico": [
+    "SDK sport API (cliente): 1.0.0.1",
+    "sport API del ROBOT: 1.0.0.1  (codigo 0 = ok (aceptado))",
+    "MotionSwitcher.CheckMode: {'form': '0', 'name': 'mcf'}  (codigo 0 = ok (aceptado))"
+  ],
+  "mode_antes": 0,
+  "mode_despues": 0,
+  "body_height_antes": 0.3186890780925751,
+  "balancestand_codigo": 0,
+  "fuente_imu": "lowstate",
+  "codigos_euler": {
+    "recto": {
+      "0": 4
+    },
+    "inclinado c1": {
+      "0": 152
+    },
+    "enderezando c1": {
+      "0": 20
+    },
+    "inclinado c2": {
+      "0": 152
+    },
+    "enderezando c2": {
+      "0": 20
+    }
+  },
+  "body_height_min": 0.3186691403388977,
+  "body_height_max": 0.31869423389434814,
+  "metricas": [
+    {
+      "ciclo": 1,
+      "fuente": "lowstate",
+      "movido": false,
+      "t_inicio_desde_balance_s": 1.323,
+      "base_grados": -0.78,
+      "desviacion_max_grados": 0.04,
+      "duracion_inclinado_s": 15.51
+    },
+    {
+      "ciclo": 2,
+      "fuente": "lowstate",
+      "movido": false,
+      "t_inicio_desde_balance_s": 18.834,
+      "base_grados": -0.78,
+      "desviacion_max_grados": 0.08,
+      "duracion_inclinado_s": 15.52
+    }
+  ]
+}

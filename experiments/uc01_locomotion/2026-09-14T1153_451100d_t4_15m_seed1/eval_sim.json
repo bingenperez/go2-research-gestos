@@ -1,0 +1,473 @@
+{
+  "fecha": "2026-09-17T12:33:24",
+  "evaluador_version": 3,
+  "politica": "experiments/uc01_locomotion/2026-09-14T1153_451100d_t4_15m_seed1/checkpoints/policy.onnx",
+  "masa_kg": 15.0,
+  "rollouts": 3,
+  "rollouts_validos": 3,
+  "caidas": 0,
+  "camina": true,
+  "umbral_h_sd": 0.004,
+  "settle_s": 2.0,
+  "schedule": [
+    [
+      0.0,
+      0.0,
+      0.0,
+      3.0
+    ],
+    [
+      0.3,
+      0.0,
+      0.0,
+      6.0
+    ],
+    [
+      0.6,
+      0.0,
+      0.0,
+      6.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.5,
+      6.0
+    ],
+    [
+      0.0,
+      0.3,
+      0.0,
+      6.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      3.0
+    ]
+  ],
+  "resultados": [
+    {
+      "rollout": 1,
+      "valid": true,
+      "fell": false,
+      "duracion_s": 31.1,
+      "segments": [
+        {
+          "segment": 0,
+          "cmd": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "vx_neto": 0.0006,
+          "vy_neto": 0.0002,
+          "wz_medido": 0.0009,
+          "vx_dif_finitas": 0.0246,
+          "discrepancia_metodos": false,
+          "seguimiento": null,
+          "distancia_m": 0.001,
+          "h_sd": 0.0001,
+          "potencia_W": 0.1,
+          "CoT": null,
+          "inclinacion_max_deg": 7.7,
+          "veredicto": "reposo (sin comando)",
+          "medido_en_regimen": true,
+          "ventana_s": 1.0
+        },
+        {
+          "segment": 1,
+          "cmd": [
+            0.3,
+            0.0,
+            0.0
+          ],
+          "vx_neto": 0.1697,
+          "vy_neto": 0.0032,
+          "wz_medido": 0.008,
+          "vx_dif_finitas": 0.1627,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.566,
+          "distancia_m": 0.678,
+          "h_sd": 0.0069,
+          "potencia_W": 12.6,
+          "CoT": 0.505,
+          "inclinacion_max_deg": 2.0,
+          "veredicto": "camina",
+          "medido_en_regimen": true,
+          "ventana_s": 3.99
+        },
+        {
+          "segment": 2,
+          "cmd": [
+            0.6,
+            0.0,
+            0.0
+          ],
+          "vx_neto": 0.4351,
+          "vy_neto": -0.0031,
+          "wz_medido": -0.0016,
+          "vx_dif_finitas": 0.4344,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.725,
+          "distancia_m": 1.739,
+          "h_sd": 0.0079,
+          "potencia_W": 33.8,
+          "CoT": 0.528,
+          "inclinacion_max_deg": 2.9,
+          "veredicto": "camina",
+          "medido_en_regimen": true,
+          "ventana_s": 4.0
+        },
+        {
+          "segment": 3,
+          "cmd": [
+            0.0,
+            0.0,
+            0.5
+          ],
+          "vx_neto": 0.0035,
+          "vy_neto": -0.0004,
+          "wz_medido": 0.262,
+          "vx_dif_finitas": 0.0213,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.524,
+          "distancia_m": 0.014,
+          "h_sd": 0.0068,
+          "potencia_W": 12.4,
+          "CoT": null,
+          "inclinacion_max_deg": 3.5,
+          "veredicto": "camina",
+          "medido_en_regimen": true,
+          "ventana_s": 4.02
+        },
+        {
+          "segment": 4,
+          "cmd": [
+            0.0,
+            0.3,
+            0.0
+          ],
+          "vx_neto": -0.0282,
+          "vy_neto": 0.0899,
+          "wz_medido": 0.0032,
+          "vx_dif_finitas": -0.026,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.314,
+          "distancia_m": 0.378,
+          "h_sd": 0.0062,
+          "potencia_W": 14.2,
+          "CoT": null,
+          "inclinacion_max_deg": 1.9,
+          "veredicto": "camina, seguimiento pobre",
+          "medido_en_regimen": true,
+          "ventana_s": 4.01
+        },
+        {
+          "segment": 5,
+          "cmd": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "vx_neto": -0.0001,
+          "vy_neto": -0.0004,
+          "wz_medido": 0.0001,
+          "vx_dif_finitas": -0.0027,
+          "discrepancia_metodos": false,
+          "seguimiento": null,
+          "distancia_m": 0.0,
+          "h_sd": 0.0001,
+          "potencia_W": 0.0,
+          "CoT": null,
+          "inclinacion_max_deg": 1.3,
+          "veredicto": "reposo (sin comando)",
+          "medido_en_regimen": true,
+          "ventana_s": 1.01
+        }
+      ]
+    },
+    {
+      "rollout": 2,
+      "valid": true,
+      "fell": false,
+      "duracion_s": 31.1,
+      "segments": [
+        {
+          "segment": 0,
+          "cmd": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "vx_neto": 0.0007,
+          "vy_neto": 0.0001,
+          "wz_medido": 0.0005,
+          "vx_dif_finitas": 0.0259,
+          "discrepancia_metodos": false,
+          "seguimiento": null,
+          "distancia_m": 0.001,
+          "h_sd": 0.0001,
+          "potencia_W": 0.1,
+          "CoT": null,
+          "inclinacion_max_deg": 6.7,
+          "veredicto": "reposo (sin comando)",
+          "medido_en_regimen": true,
+          "ventana_s": 1.0
+        },
+        {
+          "segment": 1,
+          "cmd": [
+            0.3,
+            0.0,
+            0.0
+          ],
+          "vx_neto": 0.1725,
+          "vy_neto": 0.0044,
+          "wz_medido": 0.0078,
+          "vx_dif_finitas": 0.1648,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.575,
+          "distancia_m": 0.693,
+          "h_sd": 0.0069,
+          "potencia_W": 12.5,
+          "CoT": 0.491,
+          "inclinacion_max_deg": 1.8,
+          "veredicto": "camina",
+          "medido_en_regimen": true,
+          "ventana_s": 4.02
+        },
+        {
+          "segment": 2,
+          "cmd": [
+            0.6,
+            0.0,
+            0.0
+          ],
+          "vx_neto": 0.4514,
+          "vy_neto": -0.0033,
+          "wz_medido": 0.0034,
+          "vx_dif_finitas": 0.4376,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.752,
+          "distancia_m": 1.804,
+          "h_sd": 0.0079,
+          "potencia_W": 33.6,
+          "CoT": 0.506,
+          "inclinacion_max_deg": 2.7,
+          "veredicto": "camina",
+          "medido_en_regimen": true,
+          "ventana_s": 4.0
+        },
+        {
+          "segment": 3,
+          "cmd": [
+            0.0,
+            0.0,
+            0.5
+          ],
+          "vx_neto": 0.0073,
+          "vy_neto": -0.0014,
+          "wz_medido": 0.257,
+          "vx_dif_finitas": 0.0261,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.514,
+          "distancia_m": 0.03,
+          "h_sd": 0.0066,
+          "potencia_W": 11.3,
+          "CoT": null,
+          "inclinacion_max_deg": 3.8,
+          "veredicto": "camina",
+          "medido_en_regimen": true,
+          "ventana_s": 3.99
+        },
+        {
+          "segment": 4,
+          "cmd": [
+            0.0,
+            0.3,
+            0.0
+          ],
+          "vx_neto": -0.0277,
+          "vy_neto": 0.0833,
+          "wz_medido": 0.0031,
+          "vx_dif_finitas": -0.0241,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.293,
+          "distancia_m": 0.35,
+          "h_sd": 0.006,
+          "potencia_W": 16.3,
+          "CoT": null,
+          "inclinacion_max_deg": 2.1,
+          "veredicto": "camina, seguimiento pobre",
+          "medido_en_regimen": true,
+          "ventana_s": 3.99
+        },
+        {
+          "segment": 5,
+          "cmd": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "vx_neto": 0.0003,
+          "vy_neto": -0.0006,
+          "wz_medido": 0.0001,
+          "vx_dif_finitas": -0.0041,
+          "discrepancia_metodos": false,
+          "seguimiento": null,
+          "distancia_m": 0.001,
+          "h_sd": 0.0001,
+          "potencia_W": 0.1,
+          "CoT": null,
+          "inclinacion_max_deg": 1.3,
+          "veredicto": "reposo (sin comando)",
+          "medido_en_regimen": true,
+          "ventana_s": 1.01
+        }
+      ]
+    },
+    {
+      "rollout": 3,
+      "valid": true,
+      "fell": false,
+      "duracion_s": 31.1,
+      "segments": [
+        {
+          "segment": 0,
+          "cmd": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "vx_neto": 0.0006,
+          "vy_neto": 0.0003,
+          "wz_medido": 0.0003,
+          "vx_dif_finitas": 0.0283,
+          "discrepancia_metodos": false,
+          "seguimiento": null,
+          "distancia_m": 0.001,
+          "h_sd": 0.0001,
+          "potencia_W": 0.1,
+          "CoT": null,
+          "inclinacion_max_deg": 6.9,
+          "veredicto": "reposo (sin comando)",
+          "medido_en_regimen": true,
+          "ventana_s": 0.99
+        },
+        {
+          "segment": 1,
+          "cmd": [
+            0.3,
+            0.0,
+            0.0
+          ],
+          "vx_neto": 0.1705,
+          "vy_neto": 0.0012,
+          "wz_medido": 0.0069,
+          "vx_dif_finitas": 0.1648,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.568,
+          "distancia_m": 0.682,
+          "h_sd": 0.007,
+          "potencia_W": 16.3,
+          "CoT": 0.65,
+          "inclinacion_max_deg": 1.9,
+          "veredicto": "camina",
+          "medido_en_regimen": true,
+          "ventana_s": 4.0
+        },
+        {
+          "segment": 2,
+          "cmd": [
+            0.6,
+            0.0,
+            0.0
+          ],
+          "vx_neto": 0.4354,
+          "vy_neto": -0.0043,
+          "wz_medido": -0.001,
+          "vx_dif_finitas": 0.4286,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.726,
+          "distancia_m": 1.739,
+          "h_sd": 0.0081,
+          "potencia_W": 34.6,
+          "CoT": 0.54,
+          "inclinacion_max_deg": 2.6,
+          "veredicto": "camina",
+          "medido_en_regimen": true,
+          "ventana_s": 3.99
+        },
+        {
+          "segment": 3,
+          "cmd": [
+            0.0,
+            0.0,
+            0.5
+          ],
+          "vx_neto": 0.0077,
+          "vy_neto": -0.0001,
+          "wz_medido": 0.2646,
+          "vx_dif_finitas": 0.0257,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.529,
+          "distancia_m": 0.031,
+          "h_sd": 0.0068,
+          "potencia_W": 12.5,
+          "CoT": null,
+          "inclinacion_max_deg": 3.4,
+          "veredicto": "camina",
+          "medido_en_regimen": true,
+          "ventana_s": 4.01
+        },
+        {
+          "segment": 4,
+          "cmd": [
+            0.0,
+            0.3,
+            0.0
+          ],
+          "vx_neto": -0.026,
+          "vy_neto": 0.0852,
+          "wz_medido": 0.0029,
+          "vx_dif_finitas": -0.0246,
+          "discrepancia_metodos": false,
+          "seguimiento": 0.297,
+          "distancia_m": 0.358,
+          "h_sd": 0.0061,
+          "potencia_W": 15.8,
+          "CoT": null,
+          "inclinacion_max_deg": 2.2,
+          "veredicto": "camina, seguimiento pobre",
+          "medido_en_regimen": true,
+          "ventana_s": 4.02
+        },
+        {
+          "segment": 5,
+          "cmd": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "vx_neto": -0.0001,
+          "vy_neto": -0.0003,
+          "wz_medido": 0.0003,
+          "vx_dif_finitas": -0.0047,
+          "discrepancia_metodos": false,
+          "seguimiento": null,
+          "distancia_m": 0.0,
+          "h_sd": 0.0001,
+          "potencia_W": 0.1,
+          "CoT": null,
+          "inclinacion_max_deg": 1.8,
+          "veredicto": "reposo (sin comando)",
+          "medido_en_regimen": true,
+          "ventana_s": 1.01
+        }
+      ]
+    }
+  ],
+  "entorno": "unitree_mujoco simulate_python, domain 1, lo, escena plana"
+}

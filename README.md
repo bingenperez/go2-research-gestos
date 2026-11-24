@@ -1,0 +1,82 @@
+# go2-research-gestos
+
+> Primera vez con el robot real: **[docs/GUIA_RAPIDA.md](docs/GUIA_RAPIDA.md)** (red, contenedor y uc13 paso a paso).
+
+Infraestructura de investigación sobre el Unitree Go2 EDU.
+Grupo DANZ, Escuela Politécnica Superior, Mondragon Unibertsitatea.
+
+## Empezar
+
+**Nunca has usado esto**: [`docs/GUIA.md`](docs/GUIA.md)
+Del ordenador en blanco al simulador (Linux, Windows y macOS) y, en Linux,
+al robot físico siguiéndote con su cámara.
+
+```bash
+git clone https://github.com/tu-usuario/go2-research-gestos.git
+cd go2-research-gestos
+docker compose --profile sim pull      # una vez, 1-10 min
+```
+
+Arrancar el simulador:
+
+- **Linux (recomendado, va fluido)**: ventana nativa con la GPU.
+  ```bash
+  ./go2 dev shell
+  # y dentro del contenedor:
+  cd /opt/go2/unitree_mujoco/simulate_python && python3 unitree_mujoco.py
+  ```
+- **Windows y Mac**: navegador. Va lento y con Docker Desktop no tiene arreglo:
+  no puede usar la tarjeta gráfica y el 3D se dibuja por software. (En Windows
+  hay una vía con WSL2, **sin verificar**: ver la parte 3 de la guía.)
+  ```bash
+  docker compose --profile sim up        # navegador: localhost:6080/vnc.html
+  ```
+
+En Linux el navegador satura la CPU (406 %) y el simulador va a trompicones:
+no lo uses.
+
+**Vas a hacer tu propio caso de uso**: copia [`usecases/uc00_plantilla`](usecases/uc00_plantilla/LEEME.md) y abre `mi_caso.py`. Es lo único que tocas.
+
+**Vas a tocar el robot físico**: [`docs/SAFETY.md`](docs/SAFETY.md), obligatorio.
+
+## Qué hay aquí
+
+Simulación y robot real comparten la misma cadena de control: el código no
+cambia, solo una variable de entorno. Todo va dentro de un contenedor Docker,
+sin instalar ROS, Python ni CUDA en tu máquina.
+
+| | |
+|---|---|
+| Comunicación | CycloneDDS 0.10.2, la versión del robot |
+| Control alto nivel | Sport Mode del fabricante, vía `Go2Controller` |
+| Control bajo nivel | `LowCmd` con CRC, watchdog y límites de par |
+| Simulador | unitree_mujoco, escena plana, visor en el navegador |
+| Despliegue | políticas ONNX |
+| Evaluación | protocolo reproducible con métricas de marcha |
+
+## Casos de uso
+
+| id | tema | estado |
+|----|------|--------|
+| uc01_locomotion | locomoción RL y sim2real con recursos de consumo | cerrado, en pausa |
+| uc02_room_exit | navegación de salida de sala | planificado |
+| uc03_energy_aware | coste de transporte y selección de marcha | siguiente |
+| uc04_person_following | seguimiento de personas con YOLO | base montada |
+| uc00_plantilla | plantilla para crear el tuyo | lista |
+
+## Reglas
+
+1. Ningún parámetro de control se cablea: todo en `usecases/*/configs/`
+2. Un experimento sin `manifest.json` no existe
+3. Las figuras se generan con un comando, nunca se editan a mano
+4. Los checkpoints de ENTRENAMIENTO y los rosbags van por DVC, nunca por
+   git. Excepcion: la politica de referencia
+   (`experiments/uc01_locomotion/legacy_wsl2/checkpoints/policy.onnx`, 748 KB)
+   si va en git, porque es la unica que hace falta para que el simulador
+   funcione nada mas clonar
+5. Antes de tocar el robot físico se lee `docs/SAFETY.md`. Sin excepciones.
+
+## Repositorios relacionados
+
+- `go2-perception-stack` (público): superficie de publicación, con tags por paper
+- `go2-robotics-workspace-archive` (privado, archivado): montaje original en WSL2
