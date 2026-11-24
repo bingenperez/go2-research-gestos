@@ -1,6 +1,10 @@
 # go2-research-gestos
 
 > Primera vez con el robot real: **[docs/GUIA_RAPIDA.md](docs/GUIA_RAPIDA.md)** (red, contenedor y uc13 paso a paso).
+>
+> **uc09 se mantiene porque uc10 lo usa**: `usecases/uc10_text_commands/deploy/text_commands.py`
+> importa `uc09_gesture_control/deploy/gesture_control.py` (lectura del estado del robot,
+> estado simulado y clasificación de postura). No borrar uc09 mientras uc10 exista.
 
 Infraestructura de investigación sobre el Unitree Go2 EDU.
 Grupo DANZ, Escuela Politécnica Superior, Mondragon Unibertsitatea.
