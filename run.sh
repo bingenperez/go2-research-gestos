@@ -37,6 +37,11 @@ if [[ -z "${GO2_IFACE:-}" ]]; then
     exit 1
 fi
 
+# Pesos de YOLO (git no los guarda). Sin ellos uc13 con camara no arranca.
+if [[ ! -f yolo11n.pt ]]; then
+    ./tools/get_models.sh || echo "AVISO: falta yolo11n.pt; uc13 con camara fallara. Con internet: ./tools/get_models.sh"
+fi
+
 FICHEROS=(-f docker-compose.yml)
 if compgen -G "/dev/dri/renderD*" >/dev/null 2>&1 && [[ -f docker-compose.linux.yml ]]; then
     FICHEROS+=(-f docker-compose.linux.yml)

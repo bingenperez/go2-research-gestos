@@ -1,6 +1,6 @@
 # go2-research-gestos
 
-> Primera vez con el robot real: **[docs/GUIA_RAPIDA.md](docs/GUIA_RAPIDA.md)** (red, contenedor y uc13 paso a paso).
+> **¿Primera vez? Empieza aquí: [docs/GUIA_RAPIDA.md](docs/GUIA_RAPIDA.md)** — de un Ubuntu recién instalado a uc13 (gestos) y uc10 (órdenes escritas) en el Go2 real, paso a paso.
 >
 > **uc09 se mantiene porque uc10 lo usa**: `usecases/uc10_text_commands/deploy/text_commands.py`
 > importa `uc09_gesture_control/deploy/gesture_control.py` (lectura del estado del robot,
