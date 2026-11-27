@@ -195,6 +195,8 @@ encender, o tras un rato, no mueve nada aunque `BalanceStand` y todos los
 estudio. Sin efecto no hay riesgo (no se anda inclinado ni se depende de la
 IMU), pero esa vez el robot no mira hacia arriba.
 
+**Arreglo provisional (rama `inclinar-siempre`):** en la práctica el perro solo se inclinaba después del saludo (la segunda secuencia). Ahora, 0.8 s después de darse por inclinado, el bucle mira la IMU; si no ha girado al menos 3°, manda Euler 0, otro `BalanceStand` y se vuelve a inclinar (como mucho 3 veces seguidas; `inclinacion.comprobar` en el yaml). La IMU solo decide si se repite; la seguridad sigue siendo por tiempos. Sale en pantalla como `no se ha inclinado (IMU ...): reintento n/3`.
+
 Para estudiarlo, `--probar-inclinacion` **mide en el tiempo** con la IMU de
 `rt/lowstate` (si no llega, la de `sportmodestate`) a ~50 Hz. La IMU solo
 mide; no decide nada. Por cada ciclo dice:

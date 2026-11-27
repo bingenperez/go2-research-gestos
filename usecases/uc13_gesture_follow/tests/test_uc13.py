@@ -624,6 +624,10 @@ class SportFalso:
     rechazar = False
     pitch = 0.0
     imu_muerta = False
+    # Primera secuencia sin efecto: tras cada uno de los proximos N
+    # BalanceStand, los Euler devuelven 0 pero el cuerpo no se mueve.
+    balances_sin_efecto = 0
+    euler_sin_efecto = False
 
     def __init__(self):
         N_SPORT["n"] += 1
@@ -638,7 +642,11 @@ class SportFalso:
         SportFalso.altura = h
 
     def StandUp(self): self._r("StandUp"); self._set(0.31); return 0
-    def BalanceStand(self): self._r("BalanceStand"); return 0
+    def BalanceStand(self):
+        self._r("BalanceStand")
+        SportFalso.euler_sin_efecto = SportFalso.balances_sin_efecto > 0
+        SportFalso.balances_sin_efecto = max(0, SportFalso.balances_sin_efecto - 1)
+        return 0
     def StopMove(self): self._r("StopMove"); return 0
     def StandDown(self): self._r("StandDown"); self._set(0.07); return 0
     def RiseSit(self):
@@ -667,7 +675,7 @@ class SportFalso:
             return SportFalso.euler_codigo
         if time.monotonic() >= SportFalso.ignorar_hasta:
             SportFalso.hist_euler.append((time.monotonic(), p))
-        if not SportFalso.imu_muerta:
+        if not SportFalso.imu_muerta and not SportFalso.euler_sin_efecto:
             SportFalso.pitch = p
         return 0
     def Sit(self): self._r("Sit"); return 0
@@ -923,6 +931,7 @@ def ejecutar_main(guion, altura=0.31, congelar_desde=None, estado_cfg=None,
     GF.crear_personas = lambda cfg: YoloFalso()
     SportFalso.altura, SportFalso.rechazar = altura, False
     SportFalso.pitch, SportFalso.imu_muerta = 0.0, False
+    SportFalso.balances_sin_efecto, SportFalso.euler_sin_efecto = 0, False
     REG.clear()
     N_SPORT["n"] = 0
     est = EstadoFalso(CE)
@@ -1171,6 +1180,30 @@ check(not moves(reg), "J: Move estando quieto")
 check(eu[-1][1] == 0.0 and seq[-2:] == ["StopMove", "StandDown"], f"J: cierre {seq[-4:]}")
 print(f"  J. quieto de pie al arrancar: BalanceStand, {t_inc_j - t_bal_j:.2f} s despues Euler({SIGNO * MAX:+.2f}) cada "
       f"{PERIODO} s ({sum(1 for _, p in eu if p)} envios), cierre con Euler 0")
+
+# --- J2. primera secuencia sin efecto: comprueba con la IMU y reintenta ---------
+def primera_sin_efecto(t0):
+    SportFalso.balances_sin_efecto = 1
+
+
+guion = [("neutro", 7.0, 2.0, 0.0)]
+codigo, out, reg = ejecutar_main(guion, durante=primera_sin_efecto)
+bals = [t for t, n, _ in reg if n == "BalanceStand"]
+check("reintento 1/" in out and len(bals) >= 2, f"J2: no reintenta: {len(bals)} BalanceStand")
+check(any(n == "Euler" and a[1] == SIGNO * MAX and t > bals[1] for t, n, a in reg),
+      "J2: tras el segundo BalanceStand no se vuelve a inclinar")
+check("reintento 2/" not in out, "J2: reintenta aunque ya se ha inclinado")
+check(not moves(reg), "J2: Move estando quieto")
+print(f"  J2. la 1a secuencia no inclina: la IMU lo ve, Euler 0 + BalanceStand "
+      f"{bals[1] - bals[0]:.2f} s despues y se inclina")
+
+# --- J3. IMU que nunca cambia: como mucho reintentos_max reintentos ----------------
+guion = [("neutro", 14.0, 2.0, 0.0)]
+codigo, out, reg = ejecutar_main(guion, durante=lambda t0: setattr(SportFalso, "imu_muerta", True))
+maxr = int(CI["comprobar"]["reintentos_max"])
+check(f"reintento {maxr}/{maxr}" in out and f"tras {maxr} reintentos" in out
+      and f"reintento {maxr + 1}/" not in out, "J3: reintentos sin tope")
+print(f"  J3. IMU muerta: {maxr} reintentos y se queda inclinado")
 
 # --- K. quieto inclinado y cruzados: Euler 0 antes de StandDown ----------------
 guion = [("mano_i", 1.3, 2.0, 0.0), ("auto", 3.0, 2.0, 0.0), ("cruzados", 1.3, 2.0, 0.0),
