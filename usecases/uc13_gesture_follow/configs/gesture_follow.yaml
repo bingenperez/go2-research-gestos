@@ -212,6 +212,16 @@ inclinacion:
   # se compara tam inclinado con el tam inclinado de referencia: si cambia
   # mas que esto, o |lateral| > lat_girar, se endereza y se vuelve a medir.
   banda_tam: 0.04
+  # Primera secuencia sin efecto: tras encender o tras un rato el robot
+  # responde 0 a todo pero no se inclina (y solo se inclinaba tras el Hello).
+  # tras_s despues de darse por inclinado se mira la IMU; si no ha girado
+  # min_grados: Euler 0, otro BalanceStand y se vuelve a inclinar. La IMU solo
+  # decide si se repite; la seguridad sigue siendo por tiempos.
+  comprobar:
+    activa: true
+    tras_s: 0.8          # medido: 90 % a 0.31 s del primer Euler
+    min_grados: 3.0      # inclinado gira ~12-13 grados
+    reintentos_max: 3
 
 seguridad:
   imagen_max_edad_s: 0.5     # watchdog de imagen

@@ -447,6 +447,10 @@ class Robot:
         self.t_balance_quieto = -1e9      # último BalanceStand para inclinarse quieto
         self.t_balance = -1e9             # último BalanceStand (cualquiera)
         self.incl = Inclinacion(cfg_incl, enviar=self._enviar_euler)
+        # Comprobación con la IMU tras inclinarse (ver comprobar_inclinacion).
+        self.pitch_base: float | None = None
+        self.comprobada = True
+        self.reintentos = 0
 
     # -- postura -------------------------------------------------------
     def activo(self) -> bool:
@@ -477,6 +481,7 @@ class Robot:
         if vx != 0.0 or wz != 0.0:
             self.t_move_no_cero = time.monotonic()
             self.en_balance = False
+            self.reintentos = 0
         return codigo
 
     def puede_inclinarse(self, ahora: float) -> bool:
@@ -489,6 +494,59 @@ class Robot:
                 and self.vx == 0.0 and abs(self.wz) < 0.05
                 and ahora - self.t_move_no_cero >= float(self.ci["espera_quieto_s"])
                 and ahora - self.t_balance >= float(self.ci.get("espera_balance_s", 1.0)))
+
+    def _pitch_imu(self) -> float | None:
+        """Cabeceo de la IMU (rad): rt/lowstate si llega; si no, sportmodestate."""
+        low = getattr(self.estado, "leer_pitch_low", lambda: None)()
+        return low if low is not None else self.estado.leer_pitch()
+
+    def inclinar(self, ahora: float) -> None:
+        """Empieza a inclinarse y guarda el cabeceo de partida para comprobarlo."""
+        if not self.incl.activa or not self.incl.recto_y_estable():
+            return
+        self.pitch_base = self._pitch_imu()
+        self.comprobada = False
+        self.incl.inclinar(ahora)
+
+    def comprobar_inclinacion(self, ahora: float) -> None:
+        """Primera secuencia sin efecto (README): a veces el robot responde 0 a
+        BalanceStand y a todos los Euler pero NO se inclina (tras encender o
+        tras un rato), y solo se inclinaba después del Hello.
+
+        Una vez por inclinación, `comprobar.tras_s` después de darse por
+        inclinado, mira la IMU. Si no ha girado al menos `comprobar.min_grados`:
+        Euler 0, otro BalanceStand y, 1 s después, se vuelve a inclinar. Como
+        mucho `comprobar.reintentos_max` veces seguidas; el contador vuelve a 0
+        al confirmar la inclinación, al andar, al levantarse o al saludar.
+
+        La IMU solo decide si se REPITE la secuencia; la seguridad (cuándo se
+        puede mandar Move) sigue siendo solo por tiempos. Sin IMU no reintenta.
+        """
+        cc = self.ci.get("comprobar") or {}
+        if (not cc.get("activa", True) or self.comprobada
+                or self.incl.estado != INCLINADO):
+            return
+        if ahora - self.incl.t_cambio < self.incl.t_inclinar + float(cc.get("tras_s", 0.8)):
+            return
+        self.comprobada = True
+        p = self._pitch_imu()
+        if p is None or self.pitch_base is None:
+            return
+        giro = math.degrees(p - self.pitch_base)
+        if abs(giro) >= float(cc.get("min_grados", 3.0)):
+            self.reintentos = 0
+            return
+        maximo = int(cc.get("reintentos_max", 3))
+        if self.reintentos >= maximo:
+            print(f"\n  [!] la IMU dice que no se ha inclinado ({giro:+.1f} grados) "
+                  f"tras {maximo} reintentos: se deja asi")
+            return
+        self.reintentos += 1
+        print(f"\n  [!] no se ha inclinado (IMU {giro:+.1f} grados): reintento "
+              f"{self.reintentos}/{maximo} (Euler 0 + BalanceStand)")
+        self.incl.enderezar(ahora)
+        self.en_balance = False           # QUIETO: balance_quieto; siguiendo: Seguidor
+        self.t_balance_quieto = -1e9
 
     def balance_quieto(self, ahora: float) -> None:
         """QUIETO de pie sin BalanceStand (p. ej. lo levantó el mando antes de
@@ -546,6 +604,7 @@ class Robot:
             self.t_balance = time.monotonic()
         elif nombre in ("StandDown", "StandUp", "RiseSit", "Hello"):
             self.en_balance = False
+            self.reintentos = 0
 
     def _dormir(self, clave: str, interrumpible: bool = True) -> None:
         if not dormir(float(self.c[clave]), interrumpible):
@@ -1582,8 +1641,10 @@ def main() -> int:
                 robot.balance_quieto(ahora)
             if (sano and robot.incl.recto_y_estable() and robot.puede_inclinarse(ahora)
                     and (not robot.siguiendo() or seguidor.permite_inclinar(ahora))):
-                robot.incl.inclinar(ahora)
+                robot.inclinar(ahora)
             robot.incl.paso(ahora)
+            if sano:
+                robot.comprobar_inclinacion(ahora)
 
             # ---- seguimiento (velocidad de este ciclo) ----------------
             r_seg = seguidor.paso(ahora, sano, persona, nueva, postura)
