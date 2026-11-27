@@ -223,6 +223,17 @@ inclinacion:
     min_grados: 3.0      # inclinado gira ~12-13 grados
     reintentos_max: 3
 
+# --- Evitar obstaculos (servicio obstacles_avoid del robot, LiDAR L1) ------
+# Al arrancar: SwitchSet(True) + UseRemoteCommandFromApi(True); Move va por
+# ObstaclesAvoidClient.Move y el robot frena o rodea lo que tiene delante. Al
+# cerrar se devuelve como estaba (UseRemoteCommandFromApi(False) y el
+# SwitchSet de antes). SIN PROBAR EN EL ROBOT: ver README ("No chocar").
+obstaculos:
+  activa: true
+  # true: si el servicio no responde, NO arranca. false: avisa y Move va
+  # directo, como antes (puede chocar).
+  obligatorio: false
+
 seguridad:
   imagen_max_edad_s: 0.5     # watchdog de imagen
   estado_max_edad_s: 0.5     # watchdog de rt/sportmodestate

@@ -313,6 +313,29 @@ Si no se puede guardar la firma (imagen sin color), sigue como antes, a la más
 grande. Umbrales **sin medir en el robot**: con `--debug` mirar `id_d`
 (parecido del elegido; 0 = igual) y `id_desc` (personas descartadas).
 
+## No chocar (rama `no-chocar`)
+
+Usa el servicio **obstacles_avoid** del propio robot (LiDAR L1 del EDU), del
+SDK: `unitree_sdk2py.go2.obstacles_avoid.ObstaclesAvoidClient`.
+
+- Al arrancar: `SwitchGet` (se guarda como estaba), `SwitchSet(True)` y
+  `UseRemoteCommandFromApi(True)`.
+- Siguiendo, **todos los Move van por `ObstaclesAvoidClient.Move`**: el robot
+  frena o rodea lo que tiene delante. Lo demás (BalanceStand, Euler, Hello,
+  StandDown...) sigue por SportClient.
+- Al cerrar: `UseRemoteCommandFromApi(False)` y `SwitchSet` como estaba.
+- Si el servicio no responde: avisa (`PUEDE CHOCAR`) y Move va directo, como
+  antes. Con `obstaculos.obligatorio: true` no arranca.
+
+**Sin probar en el robot.** Qué mirar la primera vez:
+
+1. Al arrancar sale `evitar obstaculos: ENCENDIDO`.
+2. Quieto: **sigue inclinándose** (Euler con el servicio encendido no está
+   probado). Si no, poner `obstaculos.activa: false` y avisar.
+3. Siguiendo, con una caja delante entre tú y el robot: frena o la rodea.
+4. Siguiendo a 2 m: no te toma a ti por obstáculo (no se queda parado).
+5. Al cerrar, el mando vuelve a mover el robot.
+
 ## Estado
 
 - [x] Seguir a 2 m con YOLO; gestos con MediaPipe

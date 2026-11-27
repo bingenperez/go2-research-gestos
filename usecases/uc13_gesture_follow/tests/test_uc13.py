@@ -695,6 +695,30 @@ sys.modules["unitree_sdk2py.go2.sport.sport_client"] = mod
 import gesture_follow as GF  # noqa: E402
 GF.crear_motion_switcher = MotionSwitcherFalso
 
+
+OA_REG: list[tuple[str, tuple]] = []
+
+
+class EvitarFalso:
+    """ObstaclesAvoidClient falso. Move se registra en REG como "Move" (las
+    invariantes de Move valen igual) y todo en OA_REG."""
+    fallar = 0               # codigo que devuelve SwitchSet(True) (0 = ok)
+    previo = False
+
+    def SwitchGet(self):
+        OA_REG.append(("SwitchGet", ())); return 0, EvitarFalso.previo
+    def SwitchSet(self, on):
+        OA_REG.append(("SwitchSet", (on,)))
+        return EvitarFalso.fallar if on else 0
+    def UseRemoteCommandFromApi(self, on):
+        OA_REG.append(("UseRemoteCommandFromApi", (on,))); return 0
+    def Move(self, vx, vy, wz):
+        OA_REG.append(("Move", (vx, vy, wz)))
+        REG.append((time.monotonic(), "Move", (vx, vy, wz))); return 0
+
+
+GF.crear_evitar_obstaculos = lambda t: EvitarFalso()
+
 conf = GF.Confirmador({"dos_manos": 3, "mano": 3, "cruzados": 3, "t": 3}, True)
 r = [conf.paso(P.DOS, True) for _ in range(3)]
 check(r[-1] == P.DOS, "no confirma")
@@ -1451,6 +1475,34 @@ if runs:
           "O: usecase")
     print(f"  O. dry-run: 0 SportClient; --log: {len(filas)} filas, vx_max {res['vx_max']}, "
           f"cuerpo {res.get('cuerpo')}")
+
+
+# --- OB. evitar obstaculos: Move por ObstaclesAvoidClient y cierre como estaba ----
+OA_REG.clear()
+codigo, out, reg = ejecutar_main([("dos_manos", 1.3, 3.0, 0.0), (None, 2.0, 3.0, 0.0)])
+oa = [n for n, _ in OA_REG]
+check(oa[:3] == ["SwitchGet", "SwitchSet", "UseRemoteCommandFromApi"]
+      and OA_REG[1][1] == (True,) and OA_REG[2][1] == (True,), f"OB: no se enciende: {oa[:4]}")
+check(any(n == "Move" and a[0] > 0 for n, a in OA_REG), "OB: los Move no van por evitar obstaculos")
+check(OA_REG[-2:] == [("UseRemoteCommandFromApi", (False,)), ("SwitchSet", (False,))],
+      f"OB: al cerrar no lo devuelve como estaba: {OA_REG[-3:]}")
+check("ENCENDIDO" in out, "OB: no avisa de que esta encendido")
+# Si el robot no tiene el servicio (3203): avisa y Move directo por SportClient.
+OA_REG.clear()
+EvitarFalso.fallar = 3203
+codigo, out, reg = ejecutar_main([("dos_manos", 1.3, 3.0, 0.0), (None, 2.0, 3.0, 0.0)])
+check("PUEDE CHOCAR" in out and not any(n == "Move" for n, _ in OA_REG)
+      and any(n == "Move" for _, n, _ in reg), "OB: sin servicio no va directo o no avisa")
+# obligatorio: no se crea la salida (main no llega a mover nada).
+try:
+    with redirect_stdout(io.StringIO()):
+        GF.SalidaRobot(LIM_MOVE, 2.0, {"activa": True, "obligatorio": True})
+    check(False, "OB: obligatorio arranca sin servicio")
+except RuntimeError:
+    check(True, "")
+EvitarFalso.fallar = 0
+print("  OB. evitar obstaculos: se enciende, Move por ObstaclesAvoidClient, al cerrar "
+      "como estaba; sin servicio: avisa y va directo; obligatorio: no arranca")
 
 
 # ===========================================================================

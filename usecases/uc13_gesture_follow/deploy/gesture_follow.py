@@ -332,17 +332,83 @@ def crear_motion_switcher():
     return ms
 
 
+def crear_evitar_obstaculos(timeout_s: float):
+    """ObstaclesAvoidClient (servicio obstacles_avoid del robot, con el LiDAR
+    L1). Las pruebas lo sustituyen."""
+    from unitree_sdk2py.go2.obstacles_avoid.obstacles_avoid_client import ObstaclesAvoidClient
+    oa = ObstaclesAvoidClient()
+    oa.SetTimeout(float(timeout_s))
+    oa.Init()
+    return oa
+
+
 class SalidaRobot:
-    """SportClient DIRECTO, como uc04/uc12. Lista blanca: nunca Sit."""
+    """SportClient DIRECTO, como uc04/uc12. Lista blanca: nunca Sit.
+
+    Evitar obstáculos (`obstaculos.activa`): al arrancar se enciende el
+    servicio obstacles_avoid del robot (SwitchSet(True)) y se le pide que
+    acepte velocidades del programa (UseRemoteCommandFromApi(True)). Desde
+    entonces Move va por ObstaclesAvoidClient.Move: el robot frena o rodea lo
+    que ve el LiDAR. Lo demás (BalanceStand, Euler, StandDown...) sigue por
+    SportClient. Al cerrar se devuelve como estaba. Si no se puede encender,
+    Move va directo (como antes) y se avisa; con `obligatorio: true`, no arranca.
+    """
 
     nombre = "robot real (SportClient)"
 
-    def __init__(self, limites: dict, timeout_s: float) -> None:
+    def __init__(self, limites: dict, timeout_s: float,
+                 cfg_obstaculos: dict | None = None) -> None:
         from unitree_sdk2py.go2.sport.sport_client import SportClient
         self.lim = limites
         self.sport = SportClient()
         self.sport.SetTimeout(float(timeout_s))
         self.sport.Init()
+        self.oa = None                  # ObstaclesAvoidClient si está encendido
+        self.oa_previo = False          # SwitchGet al arrancar, para devolverlo
+        self.aviso_obstaculos = ""
+        if cfg_obstaculos and cfg_obstaculos.get("activa", False):
+            self._encender_obstaculos(float(timeout_s), bool(cfg_obstaculos.get("obligatorio", False)))
+
+    def _encender_obstaculos(self, timeout_s: float, obligatorio: bool) -> None:
+        try:
+            oa = crear_evitar_obstaculos(timeout_s)
+            codigo, previo = oa.SwitchGet()
+            c_on = int(oa.SwitchSet(True) or 0)
+            c_api = int(oa.UseRemoteCommandFromApi(True) or 0)
+            if c_on != 0 or c_api != 0:
+                try:
+                    oa.UseRemoteCommandFromApi(False)
+                    oa.SwitchSet(bool(previo) if int(codigo) == 0 else False)
+                except Exception:
+                    pass
+                raise RuntimeError(f"SwitchSet: {texto_codigo(c_on)}; "
+                                   f"UseRemoteCommandFromApi: {texto_codigo(c_api)}")
+        except Exception as e:
+            self.aviso_obstaculos = f"evitar obstaculos NO disponible ({e})"
+            if obligatorio:
+                raise RuntimeError(f"{self.aviso_obstaculos} y obstaculos.obligatorio es true")
+            print(f"  [!] {self.aviso_obstaculos}: Move va directo, PUEDE CHOCAR")
+            return
+        self.oa, self.oa_previo = oa, bool(previo) if int(codigo) == 0 else False
+        self.nombre = "robot real (SportClient + evitar obstaculos)"
+        print(f"  evitar obstaculos: ENCENDIDO (antes {'encendido' if self.oa_previo else 'apagado'}); "
+              "Move va por ObstaclesAvoidClient")
+
+    def soltar_obstaculos(self) -> None:
+        """Cierre: el mando vuelve a mandar y el servicio queda como estaba."""
+        if self.oa is None:
+            return
+        oa, self.oa = self.oa, None
+        # Move(0,0,0) ya lo manda cerrar() si seguia (con el cuerpo recto).
+        for nombre, llamada in (("UseRemoteCommandFromApi(False)",
+                                 lambda: oa.UseRemoteCommandFromApi(False)),
+                                (f"SwitchSet({self.oa_previo})",
+                                 lambda: oa.SwitchSet(self.oa_previo))):
+            try:
+                llamada()
+            except Exception as e:
+                print(f"  [!] evitar obstaculos, {nombre} fallo: {e}")
+        print("  evitar obstaculos: devuelto como estaba")
 
     def llamar(self, nombre: str) -> int:
         if nombre not in PERMITIDAS:
@@ -352,6 +418,8 @@ class SalidaRobot:
 
     def mover(self, vx: float, vy: float, wz: float) -> int:
         _comprobar_move(vx, vy, wz, self.lim)
+        if self.oa is not None:
+            return int(self.oa.Move(float(vx), 0.0, float(wz)) or 0)
         return int(self.sport.Move(float(vx), 0.0, float(wz)) or 0)
 
     def euler(self, roll: float, pitch: float, yaw: float) -> int:
@@ -361,7 +429,8 @@ class SalidaRobot:
     def diagnostico(self) -> list[str]:
         """Solo lectura: versión del API de sport y servicio de movimiento
         activo (MotionSwitcher.CheckMode). No cambia nada en el robot."""
-        lineas = []
+        lineas = [f"evitar obstaculos: {'encendido' if self.oa is not None else 'no'}"
+                  + (f" ({self.aviso_obstaculos})" if self.aviso_obstaculos else "")]
         try:
             lineas.append(f"SDK sport API (cliente): {self.sport.GetApiVersion()}")
         except Exception as e:
@@ -1399,8 +1468,10 @@ def crear_estado(necesita_dds: bool, domain: int, iface: str, ce: dict, seg: dic
     return estado
 
 
-def crear_salida(mueve: bool, limites: dict, seg: dict):
-    return SalidaRobot(limites, float(seg["timeout_sport_s"])) if mueve else SalidaNula(limites)
+def crear_salida(mueve: bool, limites: dict, seg: dict, cfg_obstaculos: dict | None = None):
+    if not mueve:
+        return SalidaNula(limites)
+    return SalidaRobot(limites, float(seg["timeout_sport_s"]), cfg_obstaculos)
 
 
 def crear_personas(cfg: dict):
@@ -1471,6 +1542,7 @@ def main() -> int:
     print(f"  inclinacion: {'si' if ci.get('activa', True) else 'no'}, Euler(0, "
           f"{ci['signo']} * {ci['max_rad']} rad, 0) cada {ci.get('periodo_envio_s', 0.1)} s "
           f"en reposo")
+    print(f"  obstaculos: {'evitar (LiDAR, servicio obstacles_avoid)' if (cfg.get('obstaculos') or {}).get('activa') else 'NO se evitan'}")
     print(f"  ventana : {'si' if args.show else 'no'}")
     if args.dry_run:
         print("  DRY RUN: no se crea SportClient ni se envia nada")
@@ -1549,7 +1621,7 @@ def main() -> int:
         import cv2
 
     try:
-        salida = crear_salida(mueve, limites, seg)
+        salida = crear_salida(mueve, limites, seg, cfg.get("obstaculos"))
         robot = Robot(salida, estado, acc, ce, ci, args.dry_run)
         seguidor = Seguidor(robot, cs, c["commands"], ci)
         print(f"salida: {salida.nombre}")
@@ -1929,6 +2001,9 @@ def cerrar(robot: Robot) -> None:
             print(f"  [!] {e}. Comprueba el robot. Si hace falta: L2+B")
         except Exception as e:
             print(f"fallo al tumbar: {e}. USA EL MANDO: L2+B")
+    soltar = getattr(robot.salida, "soltar_obstaculos", None)
+    if soltar:
+        soltar()
 
 
 if __name__ == "__main__":
