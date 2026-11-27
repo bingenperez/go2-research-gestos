@@ -75,14 +75,26 @@ class DetectorPersonas:
         self.yolo = YOLO(str(modelo))
         self.imgsz = int(cfg.get("imgsz", 320))
         self.confianza_min = float(cfg.get("confianza_min", 0.4))
+        self.ms = 0.0
 
     def detectar(self, imagen: np.ndarray) -> Persona:
+        """La caja más grande (como uc04)."""
+        todas = self.detectar_todas(imagen)
+        if not todas:
+            return Persona(visible=False, ms=self.ms)
+        p = max(todas, key=lambda c: (c.caja[2] - c.caja[0]) * (c.caja[3] - c.caja[1]))
+        return p
+
+    def detectar_todas(self, imagen: np.ndarray) -> list[Persona]:
+        """Todas las personas (para seguir solo a una: perception/identidad.py)."""
         t = time.perf_counter()
         h, w = imagen.shape[:2]
         # classes=[0]: solo la clase `person` de COCO, como uc04.
         res = self.yolo.predict(imagen, imgsz=self.imgsz, conf=self.confianza_min,
                                 classes=[0], verbose=False)[0]
         cajas = [(*(float(v) for v in c.xyxy[0]), float(c.conf[0])) for c in res.boxes]
-        p = elegir(cajas, w, h)
-        p.ms = (time.perf_counter() - t) * 1000.0
-        return p
+        self.ms = (time.perf_counter() - t) * 1000.0
+        todas = [elegir([c], w, h) for c in cajas]
+        for p in todas:
+            p.ms = self.ms
+        return todas

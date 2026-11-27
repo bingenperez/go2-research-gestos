@@ -83,6 +83,29 @@ acciones:
   timeout_estable_s: 8.0
   timeout_standdown_s: 5.0
 
+# --- Seguir SOLO a quien hizo las dos manos (perception/identidad.py) -----
+# Al empezar a seguir se guarda la "firma" de colores de su ropa (franja de
+# arriba y franja de abajo de su caja de YOLO). Siguiendo, de todas las
+# personas se elige la que mas se parece Y esta cerca de donde se le vio; si
+# ninguna se parece lo bastante: no visible -> se para (perdida_s) y a los
+# pausa_max_s deja de seguir. Siguiendo, solo valen SUS gestos. Al dejar de
+# seguir se olvida. Umbrales SIN MEDIR en el robot: ver id_d en --debug.
+identidad:
+  activa: true
+  umbral: 0.5            # distancia Bhattacharyya maxima (0 = igual, 1 = nada que ver)
+  peso_abajo: 0.7        # andando a 2 m solo se ven piernas: manda la franja de abajo
+  arriba: [0.15, 0.5]    # franja de la camiseta, en fraccion del alto de la caja
+  abajo_desde: 0.55      # pantalon y zapatos: de aqui al final de la caja
+  borde_arriba: 0.02     # caja a menos de esto del borde de arriba: cortada, sin camiseta
+  salto_max: 0.5         # |lateral| maximo de un fotograma a otro (si se le vio hace < memoria_s)
+  memoria_s: 1.0
+  peso_posicion: 0.5     # cuanto pesa el salto lateral al elegir entre parecidas
+  adaptar_bajo: 0.3      # si se parece mas que esto, la firma se adapta (luz)
+  alfa: 0.1
+  bins_h: 18
+  bins_s: 8
+  v_min: 40              # fuera los pixeles casi negros (sombras)
+
 seguimiento:
   # --- Distancia objetivo: 2.0 m --------------------------------------------
   # tam = alto de la caja de YOLO / alto de la imagen (como uc04). Calibrado

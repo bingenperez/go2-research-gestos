@@ -604,11 +604,22 @@ class DetectorGestos:
         if dt > 0:
             self.fps = 0.8 * self.fps + 0.2 * (1.0 / dt)
 
+        # Siguiendo a una persona (perception/identidad.py), el bucle pone en
+        # `preferir_caja` su caja de YOLO: solo valen las poses con el centro
+        # dentro (sus gestos, no los de quien esté más cerca).
+        preferir = getattr(self, "preferir_caja", None)
+        hh, ww = imagen.shape[:2]
         mejor, mejor_area = None, 0.0
         for persona in res.pose_landmarks or []:
             p = np.array([[l.x, l.y, (l.visibility or 0.0)] for l in persona],
                          dtype=np.float32)
             a = area_visible(p, self.vis_min)
+            if preferir is not None and a > 0.0:
+                v = p[p[:, 2] >= self.vis_min]
+                cx = (v[:, 0].min() + v[:, 0].max()) / 2.0 * ww
+                cy = (v[:, 1].min() + v[:, 1].max()) / 2.0 * hh
+                if not (preferir[0] <= cx <= preferir[2] and preferir[1] <= cy <= preferir[3]):
+                    continue
             if a > mejor_area:
                 mejor, mejor_area = p, a
 

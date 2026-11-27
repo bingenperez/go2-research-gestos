@@ -1421,6 +1421,83 @@ if runs:
 
 
 # ===========================================================================
+print("\n== 7b. identidad: seguir solo a quien hizo las dos manos ==")
+from perception import identidad as ID  # noqa: E402
+
+CID = CFG["identidad"]
+
+
+def escena(personas_, seed=0):
+    """Imagen 360x640 con fondo gris ruidoso y personas (x1, y1, x2, y2, camiseta, pantalon) BGR."""
+    rng = np.random.default_rng(seed)
+    img = rng.integers(90, 140, (360, 640, 3), dtype=np.uint8)
+    for x1, y1, x2, y2, arriba, abajo in personas_:
+        alto = y2 - y1
+        img[y1:y1 + int(0.5 * alto), x1:x2] = arriba
+        img[y1 + int(0.5 * alto):y2, x1:x2] = abajo
+        ruido = rng.integers(-12, 12, (y2 - y1, x2 - x1, 3))
+        img[y1:y2, x1:x2] = np.clip(img[y1:y2, x1:x2].astype(int) + ruido, 0, 255)
+    return img
+
+
+BLANCO, ROJO, AZUL, VERDE = (235, 235, 235), (40, 40, 220), (220, 60, 40), (60, 200, 60)
+YO = (80, 40, 200, 330)          # pantalon rojo
+OTRO = (380, 20, 560, 350)       # pantalon azul, mas grande (mas cerca)
+
+
+def cand(img, caja):
+    return elegir([(*caja, 0.9)], img.shape[1], img.shape[0])
+
+
+img = escena([(*YO, BLANCO, ROJO), (*OTRO, BLANCO, AZUL)])
+img2 = escena([(*YO, BLANCO, ROJO), (*OTRO, BLANCO, AZUL)], seed=1)
+f_yo, f_otro = ID.firma(img, YO, CID), ID.firma(img, OTRO, CID)
+f_yo2 = ID.firma(img2, YO, CID)
+d_igual, d_otro = ID.distancia(f_yo, f_yo2, CID), ID.distancia(f_yo, f_otro, CID)
+check(d_igual < 0.2, f"misma ropa con otro ruido: d {d_igual:.2f}")
+check(d_otro > float(CID["umbral"]), f"otro pantalon: d {d_otro:.2f} no supera el umbral")
+
+ide = ID.Identidad(CID)
+c_yo, c_otro = cand(img, YO), cand(img, OTRO)
+check(ID.mayor([c_yo, c_otro]).caja == c_otro.caja, "mayor no es la caja mas grande")
+check(ID.de_la_pose([c_yo, c_otro], (100, 60, 180, 320)).caja == c_yo.caja,
+      "de_la_pose no coge la caja de quien hace el gesto")
+check(ide.fijar(img, c_yo, 0.0) and ide.activa, "no fija la firma")
+p = ide.elegir(img2, [cand(img2, OTRO), cand(img2, YO)], 0.1)
+check(p.visible and p.caja == c_yo.caja, "con otra persona mas cerca no me elige a mi")
+p = ide.elegir(img2, [cand(img2, OTRO)], 0.2)
+check(not p.visible, "sin mi, sigue al otro")
+# Alguien con mi ropa que aparece de golpe al otro lado: no (si me vio hace poco).
+gemelo = escena([(*OTRO, BLANCO, ROJO)], seed=2)
+p = ide.elegir(gemelo, [cand(gemelo, OTRO)], 0.3)
+check(not p.visible, "salta a alguien con mi ropa al otro lado de la imagen")
+p = ide.elegir(gemelo, [cand(gemelo, OTRO)], 0.3 + float(CID["memoria_s"]) + 0.1)
+check(p.visible, "tras memoria_s sin verme no me reconoce en otro sitio")
+# Andando: la caja cortada por arriba (solo piernas). Se compara solo abajo.
+CORTADA = (80, 0, 200, 330)
+piernas = escena([(*CORTADA, ROJO, ROJO)], seed=3)
+check(ID.firma(piernas, CORTADA, CID)["arriba"] is None, "caja cortada: compara la camiseta")
+ide2 = ID.Identidad(CID)
+ide2.fijar(img, c_yo, 0.0)
+p = ide2.elegir(piernas, [cand(piernas, CORTADA)], 0.1)
+check(p.visible, f"andando (solo piernas) no me reconoce: d {ide2.d_ultima}")
+piernas_azules = escena([(*CORTADA, AZUL, AZUL)], seed=4)
+p = ide2.elegir(piernas_azules, [cand(piernas_azules, CORTADA)], 0.2)
+check(not p.visible, "andando sigue a otras piernas")
+# Olvidar: vuelve a la mas grande.
+ide.olvidar()
+check(not ide.activa and ide.elegir(img, [c_yo, c_otro], 5.0).caja == c_otro.caja,
+      "olvidar no vuelve a la persona mas grande")
+# Imagen negra (sin color): no fija; se sigue como antes.
+negra = np.zeros((360, 640, 3), np.uint8)
+check(not ID.Identidad(CID).fijar(negra, cand(negra, YO), 0.0), "fija una firma de una imagen negra")
+check(not ID.Identidad(dict(CID, activa=False)).fijar(img, c_yo, 0.0), "fija con activa: false")
+print(f"  misma ropa d {d_igual:.2f}, otro pantalon d {d_otro:.2f} (umbral {CID['umbral']}); "
+      "me elige con otro mas cerca; sin mi: no visible; gemelo al otro lado: no; "
+      "solo piernas: compara abajo; olvidar -> la mas grande")
+
+
+# ===========================================================================
 print("\n== 8. control nuevo sobre los metrics.csv reales del 2026-11-18 ==")
 runs = sorted(glob.glob(str(UC.parents[1] / "experiments" / "uc13_gesture_follow" / "2026-11-18T14*")))
 for run in runs:

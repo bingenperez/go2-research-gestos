@@ -290,6 +290,27 @@ mide también la mediana a 2.5 m.
   - body_height 0.27 andando, dry-run y `--log`;
 - repetición del control nuevo sobre los `metrics.csv` reales.
 
+## Seguir solo a una persona (rama `seguir-solo-a-mi`)
+
+Antes se seguía, en cada fotograma, a la caja de YOLO más grande: si alguien
+se cruzaba más cerca, el robot se iba con esa persona. Ahora
+(`perception/identidad.py`, `identidad:` en el yaml):
+
+1. Al hacer **dos manos** (empezar a seguir) se guarda la **firma** de quien
+   hace el gesto: histogramas de color de su ropa, franja de arriba (camiseta)
+   y franja de abajo (pantalón y zapatos). La de abajo pesa más (`peso_abajo`
+   0.7): andando a 2 m solo se ven piernas.
+2. Siguiendo, de todas las personas se elige la que **más se parece** a la
+   firma y está **cerca de donde se le vio** (`salto_max`).
+3. Si **nadie se parece** lo bastante (`umbral`), no sigue a otra: se para
+   (como al perder a la persona) y a los `pausa_max_s` (5 s) deja de seguir.
+4. Siguiendo, **solo cuentan sus gestos** (dos manos o T para parar).
+5. Al dejar de seguir, **se olvida** la firma. Quieto, cualquiera puede dar órdenes.
+
+Si no se puede guardar la firma (imagen sin color), sigue como antes, a la más
+grande. Umbrales **sin medir en el robot**: con `--debug` mirar `id_d`
+(parecido del elegido; 0 = igual) y `id_desc` (personas descartadas).
+
 ## Estado
 
 - [x] Seguir a 2 m con YOLO; gestos con MediaPipe

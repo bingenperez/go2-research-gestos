@@ -103,6 +103,8 @@ from control.inclinacion import (ENDEREZANDO, INCLINADO, RECTO,  # noqa: E402
                                  Inclinacion)
 from control.seguimiento import ControlSeguimiento, Distancia, Filtro  # noqa: E402
 from perception.personas import Persona                 # noqa: E402
+from perception.identidad import (Identidad, centro_dentro, de_la_pose,  # noqa: E402
+                                  mayor)
 from perception.pose import (CRUZADOS, DOS, MANO, NINGUNO, SALUDO, T,  # noqa: E402
                              DetectorSaludo, MedidaSaludo, Pose)
 
@@ -1468,6 +1470,8 @@ def main() -> int:
 
     robot = None
     conf = Confirmador(cfg["gestos"]["frames_necesarios"], bool(acc.get("rearmar", True)))
+    # Seguir solo a quien hizo las dos manos (perception/identidad.py).
+    identidad = Identidad(cfg.get("identidad") or {"activa": False})
     saludo = DetectorSaludo(cfg["gestos"])
     cs_sal = cfg["gestos"]["saludo"]
     med_sal = MedidaSaludo()
@@ -1506,6 +1510,7 @@ def main() -> int:
         ultima = "-"
         pose = Pose(visible=False)
         persona = Persona(visible=False)
+        candidatos: list[Persona] = []
         imagen_vista = None
         hueco = 0.0
         n_img = 0
@@ -1518,7 +1523,13 @@ def main() -> int:
                 n_img += 1
                 hueco = ahora - t_ultima_img
                 t_ultima_img = ahora
-                persona = personas.detectar(imagen)
+                candidatos = _candidatos(personas, imagen)
+                if robot.siguiendo() and identidad.activa:
+                    # Solo la persona fijada; si no está, no visible (se para).
+                    persona = identidad.elegir(imagen, candidatos, ahora)
+                else:
+                    persona = mayor(candidatos)
+                persona.ms = getattr(personas, "ms", persona.ms)
                 # Solo se salta MediaPipe siguiendo Y andando. En QUIETO (y
                 # siguiendo parado) en TODOS los fotogramas: el saludo es una
                 # ventana de tiempo y necesita todas las muestras.
@@ -1528,11 +1539,17 @@ def main() -> int:
                     med_sal = MedidaSaludo()
                 else:
                     tm = time.perf_counter()
+                    det.preferir_caja = (persona.caja if identidad.activa and persona.visible
+                                         else None)
                     pose = det.detectar(imagen)
                     ms_mp = (time.perf_counter() - tm) * 1000.0
                     med_sal = saludo.paso(ahora, pose.puntos if pose.visible else None)
                     if med_sal.detectado:
                         pose.gesto = SALUDO      # prioridad sobre el gesto del fotograma
+                    # Siguiendo: solo cuentan los gestos de la persona fijada.
+                    if (identidad.activa and pose.visible
+                            and not (persona.visible and centro_dentro(pose.caja, persona.caja))):
+                        pose.gesto = NINGUNO
                 imagen_vista = imagen
                 # Calibración de tam: solo con el cuerpo recto (inclinado no vale).
                 if persona.visible and persona.tam is not None and robot.incl.recto_y_estable():
@@ -1575,6 +1592,9 @@ def main() -> int:
                 rr = robot.parar_seguimiento()
                 print(f"  resultado: {MENSAJES.get(rr, rr)}")
                 ultima = f"auto: parar ({r_seg})"
+            if identidad.activa and not robot.siguiendo():
+                identidad.olvidar()
+                print("  ya no sigue: olvido la firma")
                 fin_cooldown = time.monotonic() + float(acc["cooldown_s"])
 
             if not nueva:
@@ -1596,6 +1616,10 @@ def main() -> int:
                       f"saludo={med_sal.cambios}/{med_sal.amplitud:.2f}{med_sal.lado or '-'}"
                       f"{'(bloq)' if med_sal.bloqueado else ''} "
                       f"yolo={'si' if persona.visible else 'no'} "
+                      f"personas={len(candidatos)} "
+                      f"id={'si' if identidad.activa else 'no'} "
+                      f"id_d={_f(identidad.d_ultima, '.2f')} "
+                      f"id_desc={identidad.descartadas} "
                       f"yolo_tam={_f(persona.tam, '.3f')} yolo_lat={_f(persona.lateral, '+.2f')} "
                       f"d={_f(seguidor.d, '.2f')}m marcha={'si' if seguidor.control.en_marcha else 'no'} "
                       f"atras={'si' if seguidor.control.atras else 'no'} "
@@ -1644,6 +1668,13 @@ def main() -> int:
                     lanzadas[accion] += 1
                     if accion == "seguir" and robot.siguiendo():
                         seguidor.empezar(time.monotonic())
+                        if identidad.activa_cfg:
+                            yo = de_la_pose(candidatos, pose.caja)
+                            if identidad.fijar(imagen_vista, yo, time.monotonic()):
+                                print("  firma guardada: solo sigo a esta persona")
+                            else:
+                                print("  [!] no he podido guardar la firma: "
+                                      "sigo a la persona mas grande")
                     fin_cooldown = time.monotonic() + float(acc["cooldown_s"])
                 if accion == "nada" or resultado == "imagen_vieja":
                     ignoradas[resultado] += 1
@@ -1692,6 +1723,10 @@ def main() -> int:
                     f"distancia: {_f(seguidor.d, '.2f', '--')} m  (yolo_tam "
                     f"{_f(persona.tam, '.2f', '--')} / obj {cs['tam_objetivo']:.2f})",
                     f"accion: {ultima}",
+                    (f"sigo solo a 1 persona (de {len(candidatos)}): parecido "
+                     f"{_f(identidad.d_ultima, '.2f', '--')} (0 = igual, "
+                     f"umbral {float(identidad.cfg.get('umbral', 0.5)):.2f})"
+                     if identidad.activa else f"personas: {len(candidatos)}"),
                     f"saludo: cambios {med_sal.cambios}/{cs_sal['cambios_min']}  amplitud "
                     f"{med_sal.amplitud:.2f}/{float(cs_sal['amplitud_min']):.2f}  "
                     f"lado {med_sal.lado or '-'}"
@@ -1787,6 +1822,16 @@ def main() -> int:
 
 def _f(v, fmt: str, nada: str = "--") -> str:
     return nada if v is None else format(v, fmt)
+
+
+def _candidatos(personas, imagen) -> list[Persona]:
+    """Todas las personas de YOLO (o la que dé `detectar` si no sabe más)."""
+    if hasattr(personas, "detectar_todas"):
+        return personas.detectar_todas(imagen)
+    p = personas.detectar(imagen)
+    if p.visible and p.caja is None:
+        p.caja = (0, 0, 1, 1)
+    return [p] if p.visible else []
 
 
 def _imu_grados(estado) -> float | None:
